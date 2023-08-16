@@ -1,0 +1,16 @@
+[mqtt]
+client_id = "affaldvarme"
+host = "10.0.1.3"
+port = 1883
+username = ""
+password = ""
+
+# You can specify either the Id of the address or fully qualify the address
+[affaldvarme.address]
+id = "bc334dbe-250e-4cf1-af89-f3e940867845"
+
+#[affaldvarme.address]
+# street_name = "Kongevejen"
+# street_no = "100"
+# postal_code = "8000"
+# city = "Aarhus C"
