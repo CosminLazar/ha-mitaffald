@@ -40,7 +40,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -Z unstable-options -- --format=json --report-time
+          args: -- -Z unstable-options --format=json --report-time
 
   lints:
     name: Lints
