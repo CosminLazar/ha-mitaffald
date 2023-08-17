@@ -124,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_can_extract_data() {
-        let input = std::fs::read_to_string("src/affaldvarme/sample_remote_response.html").unwrap();
+        let input = std::fs::read_to_string("src/mitaffald/sample_remote_response.html").unwrap();
 
         let actual = extract_container_data(input);
         let expected = vec![
