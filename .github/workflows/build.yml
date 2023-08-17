@@ -38,13 +38,11 @@ jobs:
 
       - name: Run cargo test
         id: run-unit-test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -- -Z unstable-options --format=json --report-time
+        run: |
+          actions-rs/cargo test -- -Z unstable-options --format=json --report-time > test-results.json
 
-      - name: Save test results to file
-        run: echo "${{ steps.run-unit-test.outputs.stdout }}" > test-results.json
+      - name: Results collected?
+        run: cat test-results.json
       
       - name: Plot results
         uses: dorny/test-reporter@v1
