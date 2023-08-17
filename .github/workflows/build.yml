@@ -29,20 +29,17 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install stable toolchain
+      - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: nightly
           override: true
 
-      - name: Install cargo
-        uses: actions-rs/cargo@v1
-        
       - name: Run cargo test
         id: run-unit-test
         run: |
-          actions-rs/cargo test -- -Z unstable-options --format=json --report-time > test-results.json
+          cargo test -- -Z unstable-options --format=json --report-time > test-results.json
 
       - name: Results collected?
         run: cat test-results.json
