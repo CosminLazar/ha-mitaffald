@@ -49,13 +49,10 @@ jobs:
           cargo nextest run --profile ci
      
       - name: Report unit test results
-        uses: dorny/test-reporter@v1
+        uses: mikepenz/action-junit-report@v3
         if: success() || failure()    # run this step even if previous step failed
-        with:
-          path: target/nextest/ci/*.xml
-          reporter: jest-junit
-          name: Test results
-      
+        with:          
+          report_paths: target/nextest/ci/*.xml
   lints:
     name: Lints
     runs-on: ubuntu-latest
