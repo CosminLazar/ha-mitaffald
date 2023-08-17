@@ -36,6 +36,9 @@ jobs:
           toolchain: nightly
           override: true
 
+      - name: Install cargo
+        uses: actions-rs/cargo@v1
+        
       - name: Run cargo test
         id: run-unit-test
         run: |
