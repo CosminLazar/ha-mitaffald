@@ -1,6 +1,6 @@
+use crate::settings::Address;
 use chrono::NaiveDate;
 use easy_scraper::Pattern;
-use crate::settings::{Address};
 use std::collections::BTreeMap;
 
 pub fn get_containers(address: Address) -> Result<Vec<Container>, String> {
@@ -17,7 +17,7 @@ pub fn get_containers(address: Address) -> Result<Vec<Container>, String> {
 
 fn fetch_remote_response(address: Address) -> Result<reqwest::blocking::Response, reqwest::Error> {
     let remote_url = build_remote_url(address);
-    
+
     reqwest::blocking::get(remote_url)
 }
 
@@ -114,8 +114,6 @@ impl Container {
         NaiveDate::from_ymd_opt(2023, month, day).unwrap()
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
