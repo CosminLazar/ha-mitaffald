@@ -36,19 +36,23 @@ jobs:
           toolchain: nightly
           override: true
 
-      - name: Run cargo test
-        id: run-unit-test
-        run: |
-          cargo test -- -Z unstable-options --format=junit --report-time > test-results.xml
+      - name: Install nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
 
-      - name: Results collected?
-        run: cat test-results.xml
-      
-      - name: Plot results
+      - name: Run unit tests (nextest)
+        id: run-unit-test
+        env:
+          CARGO_TERM_COLOR: always
+        run: |
+          cargo nextest run --profile ci
+     
+      - name: Report unit test results
         uses: mikepenz/action-junit-report@v3
         if: success() || failure()    # run this step even if previous step failed
         with:          
-          report_paths: 'test-results.xml'    # Path to test results          
+          report_paths: target/nextest/ci/*.xml
   lints:
     name: Lints
     runs-on: ubuntu-latest
