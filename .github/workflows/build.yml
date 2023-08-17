@@ -53,6 +53,7 @@ jobs:
         if: success() || failure()    # run this step even if previous step failed
         with:          
           report_paths: target/nextest/ci/*.xml
+          include_passed: true
   lints:
     name: Lints
     runs-on: ubuntu-latest
