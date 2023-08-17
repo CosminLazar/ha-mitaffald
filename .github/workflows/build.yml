@@ -45,12 +45,10 @@ jobs:
         run: cat test-results.xml
       
       - name: Plot results
-        uses: dorny/test-reporter@v1
+        uses: mikepenz/action-junit-report@v3
         if: success() || failure()    # run this step even if previous step failed
-        with:
-          name: JEST Tests            # Name of the check run which will be created
-          path: test-results.xml    # Path to test results
-          reporter: java-junit        # Format of test results
+        with:          
+          report_paths: test-results.xml    # Path to test results          
   lints:
     name: Lints
     runs-on: ubuntu-latest
