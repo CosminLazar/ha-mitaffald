@@ -37,11 +37,22 @@ jobs:
           override: true
 
       - name: Run cargo test
+        id: run-unit-test
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: -- -Z unstable-options --format=json --report-time
 
+      - name: Save test results to file
+        run: echo "${{ steps.run-unit-test.outputs.stdout }}" > test-results.json
+      
+      - name: Plot results
+        uses: dorny/test-reporter@v1
+        if: success() || failure()    # run this step even if previous step failed
+        with:
+          name: JEST Tests            # Name of the check run which will be created
+          path: test-results.json    # Path to test results
+          reporter: dart-json        # Format of test results
   lints:
     name: Lints
     runs-on: ubuntu-latest
