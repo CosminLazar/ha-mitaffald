@@ -55,7 +55,7 @@ jobs:
         if: success() || failure()    # run this step even if previous step failed
         with:          
           path: target/nextest/ci/*.xml
-          reporter: jest-junit
+          reporter: java-junit
           name: Unit Tests
   lints:
     name: Lints
