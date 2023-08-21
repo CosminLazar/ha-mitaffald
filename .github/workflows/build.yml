@@ -39,6 +39,7 @@ jobs:
         with:          
           path: target/nextest/ci/*.xml
           reporter: java-junit
+          max-annotations: 50
           name: Unit Tests
   lints:
     name: Lints
