@@ -50,5 +50,6 @@ jobs:
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
 
-      - name: Run cargo clippy
-        run: cargo clippy --all -- -D warnings
+      - uses: clechasseur/rs-clippy-check@v2
+        with:
+          args: --all-features
