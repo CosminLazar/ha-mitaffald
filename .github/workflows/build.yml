@@ -52,4 +52,4 @@ jobs:
 
       - uses: clechasseur/rs-clippy-check@v2
         with:
-          args: --all-features
+          args: --all-features -- -D warnings
