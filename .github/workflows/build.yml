@@ -71,3 +71,9 @@ jobs:
         uses: codecov/codecov-action@v3
         with:          
           files: lcov.info
+      - name: Report code coverage
+        uses: zgosalvez/github-actions-report-lcov@v3
+        with:
+          coverage-files: lcov.*.info
+          artifact-name: code-coverage-report
+          update-comment: true
