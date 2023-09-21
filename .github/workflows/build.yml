@@ -71,6 +71,9 @@ jobs:
         uses: codecov/codecov-action@v3
         with:          
           files: lcov.info
+# this is needed by zgosalvez/github-actions-report-lcov
+      - name: Setup LCOV
+        uses: hrishikesh-kadam/setup-lcov@v1        
       - name: Report code coverage
         uses: zgosalvez/github-actions-report-lcov@v3
         with:
