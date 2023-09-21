@@ -1,6 +1,6 @@
+use crate::settings::Address;
 use chrono::NaiveDate;
 use easy_scraper::Pattern;
-use crate::settings::{Address};
 use std::collections::BTreeMap;
 
 pub fn get_containers(address: Address) -> Result<Vec<Container>, String> {
@@ -17,7 +17,7 @@ pub fn get_containers(address: Address) -> Result<Vec<Container>, String> {
 
 fn fetch_remote_response(address: Address) -> Result<reqwest::blocking::Response, reqwest::Error> {
     let remote_url = build_remote_url(address);
-    
+
     reqwest::blocking::get(remote_url)
 }
 
@@ -66,6 +66,7 @@ fn extract_container_data(html: String) -> Vec<Container> {
         .collect()
 }
 
+#[allow(dead_code)]
 fn from_destructive(mut value: BTreeMap<String, String>) -> Container {
     Container {
         id: value.remove("id").unwrap_or_else(|| String::from("N/A")),
@@ -115,16 +116,13 @@ impl Container {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::SystemTime;
 
     #[test]
     fn test_can_extract_data() {
-        let input = std::fs::read_to_string("src/affaldvarme/sample_remote_response.html").unwrap();
+        let input = std::fs::read_to_string("src/mitaffald/sample_remote_response.html").unwrap();
 
         let actual = extract_container_data(input);
         let expected = vec![
@@ -162,6 +160,12 @@ mod tests {
 
         assert_eq!(actual, expected);
     }
+
+    // #[test]
+    // fn test_that_fails() {
+    //     // this test is used to illustrate how a failed test might show up in the github action test report
+    //     assert_eq!(true, false);
+    // }
 
     // #[test]
     // fn test_can_calculate_next_date_at_year_end() {

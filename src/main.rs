@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use ha_mitaffald::{get_containers, HASensor, Settings};
 use rumqttc::Client;
+use std::collections::HashMap;
 
 fn main() {
     let settings = Settings::new().expect("Failed to read settings");
