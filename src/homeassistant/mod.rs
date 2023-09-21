@@ -1,19 +1,13 @@
 use crate::mitaffald::Container;
 use crate::settings::MQTTConfig;
-use rumqttc::{Client, Connection, LastWill, MqttOptions};
+use rumqttc::{Client, LastWill, MqttOptions};
 const HA_AVAILABILITY_TOPIC: &str = "garbage_bin/availability";
 
-// pub struct HomeAssistantClient {
-//     client: Client,
-//     connection: Connection,
-//     is_initialized: bool,
-// }
-
-impl Into<MqttOptions> for MQTTConfig {
-    fn into(self) -> MqttOptions {
-        let mut config = MqttOptions::new(self.client_id, self.host, self.port);
+impl From<MQTTConfig> for MqttOptions {
+    fn from(val: MQTTConfig) -> Self {
+        let mut config = MqttOptions::new(val.client_id, val.host, val.port);
         config
-            .set_credentials(self.username, self.password)
+            .set_credentials(val.username, val.password)
             .set_last_will(LastWill::new(
                 HA_AVAILABILITY_TOPIC,
                 "offline",
@@ -24,96 +18,6 @@ impl Into<MqttOptions> for MQTTConfig {
         config
     }
 }
-
-// trait PollToCompletion {
-//     fn complete(&mut self);
-// }
-
-// impl PollToCompletion for Client{
-//     fn complete(&mut self) {
-//         self.
-//     }
-// }
-
-// impl HomeAssistantClient {
-//     pub fn new(config: MQTTConfig) -> Self {
-//         let (client, connection) = Client::new(config.into(), 20);
-
-//         Self {
-//             client,
-//             connection,
-//             is_initialized: false,
-//         }
-//     }
-
-// pub fn report(&mut self, container: &Container) {
-//     let topic_config = HomeAssistantClient::get_sensor_topic(container);
-
-//     //ERROR! only registers one sensor
-//     if !self.is_initialized {
-//         self.register_sensor(container, &topic_config);
-//         self.register_sensor_availability();
-//         self.is_initialized = true;
-//     }
-
-//     self.register_sensor_value(container, &topic_config);
-// }
-
-/// Asks for a disconnection from the MQTT broker and waits for the connection to be closed, while calling the connection iterator in order to make progress.
-/// All data that is in the process of being sent will be sent before the disconnection is completed.
-// pub fn disconnect(&mut self) {
-//     //calling disconnect() causes an error in the connection iterator
-//     self.client.disconnect().expect("Failed to disconnect");
-
-//     //iterate the connection untill we hit the above generated error
-//     let _ = self.connection.iter().take_while(|x| x.is_ok()).count();
-// }
-
-// fn register_sensor_value(&mut self, container: &Container, topic_config: &HomeAssistantSensor) {
-//     let payload = format!(
-//         r#"
-//         {{
-//         "id": "{id}",
-//         "size": "{size}",
-//         "frequency": "{frequency}",
-//         "name": "{sensor_name}",
-//         "next_empty": "{next_empty}",
-//         "last_update": "{last_update}"
-//         }}"#,
-//         id = container.id,
-//         size = container.size,
-//         frequency = container.frequency,
-//         sensor_name = container.name,
-//         next_empty = container.get_next_empty().format("%Y-%m-%d"),
-//         last_update = chrono::Local::now().to_rfc3339(),
-//     );
-
-//     let _r = self.client.publish(
-//         &topic_config.state_topic,
-//         rumqttc::QoS::AtLeastOnce,
-//         false,
-//         payload,
-//     );
-// }
-
-// fn get_sensor_topic(container: &Container) -> HomeAssistantSensor {
-//     let state_topic = format!("garbage_bin/{}/status", container.id);
-//     let configure_topic = format!(
-//         "homeassistant/sensor/ha_affaldvarme_{}/config",
-//         container.id
-//     );
-//     HomeAssistantSensor {
-//         state_topic,
-//         configure_topic,
-//     }
-// }
-//}
-
-struct HomeAssistantSensor {
-    state_topic: String,
-    configure_topic: String,
-}
-
 pub struct HASensor {
     pub container_id: String,
     configure_topic: String,

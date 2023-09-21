@@ -66,6 +66,7 @@ fn extract_container_data(html: String) -> Vec<Container> {
         .collect()
 }
 
+#[allow(dead_code)]
 fn from_destructive(mut value: BTreeMap<String, String>) -> Container {
     Container {
         id: value.remove("id").unwrap_or_else(|| String::from("N/A")),
@@ -118,7 +119,6 @@ impl Container {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::SystemTime;
 
     #[test]
     fn test_can_extract_data() {
