@@ -1,5 +1,5 @@
 use crate::settings::Address;
-use chrono::NaiveDate;
+use chrono::{Datelike, Local, NaiveDate};
 use easy_scraper::Pattern;
 use std::collections::BTreeMap;
 
@@ -104,6 +104,8 @@ pub struct Container {
 
 impl Container {
     pub fn get_next_empty(&self) -> NaiveDate {
+        /* next_empty is in the format DD/MM so we need to guess the year.
+        Most of the times it will be current year, but if the date is in the past it will be next year.*/
         let mut parts = self.next_empty.split('/');
 
         let day = parts.next().unwrap();
@@ -111,14 +113,21 @@ impl Container {
 
         let day = day.parse::<u32>().unwrap();
         let month = month.parse::<u32>().unwrap();
+        let today = Local::now();
 
-        NaiveDate::from_ymd_opt(2023, month, day).unwrap()
+        if day < today.day() && month <= today.month() {
+            NaiveDate::from_ymd_opt(today.year() + 1, month, day).unwrap()
+        } else {
+            NaiveDate::from_ymd_opt(today.year(), month, day).unwrap()
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::{Datelike, Duration, Local};
+    use fluent_asserter::*;
 
     #[test]
     fn test_can_extract_data() {
@@ -142,44 +151,51 @@ mod tests {
             },
         ];
 
-        assert_eq!(actual, expected);
+        assert_that!(actual).is_equal_to(expected);
     }
 
     #[test]
-    fn test_can_calculate_next_date() {
-        let input = Container {
+    fn test_can_calculate_next_date_future() {
+        let date_in_the_future = Local::now().date_naive() + Duration::days(1);
+        let input = build_container(date_in_the_future);
+
+        let actual = input.get_next_empty();
+
+        assert_that!(actual).is_equal_to(date_in_the_future);
+    }
+
+    #[test]
+    fn test_can_calculate_next_date_today() {
+        let today = Local::now().date_naive();
+        let input = build_container(today);
+
+        let actual = input.get_next_empty();
+
+        assert_that!(actual).is_equal_to(today);
+    }
+
+    #[test]
+    fn test_can_calculate_next_date_at_year_end() {
+        let today = Local::now().date_naive();
+        let yesterday = today - chrono::Duration::days(1);
+
+        let input = build_container(yesterday);
+
+        let actual = input.get_next_empty();
+        let expected =
+            NaiveDate::from_ymd_opt(yesterday.year() + 1, yesterday.month(), yesterday.day())
+                .unwrap();
+
+        assert_that!(actual).is_equal_to(expected);
+    }
+
+    fn build_container(next_empty: NaiveDate) -> Container {
+        Container {
             id: "11064295".to_owned(),
             name: "Restaffald".to_owned(),
             frequency: "1 gang på 2 uger".to_owned(),
-            next_empty: "04/08".to_owned(),
+            next_empty: next_empty.format("%d/%m").to_string(),
             size: "240 L".to_owned(),
-        };
-
-        let actual = input.get_next_empty();
-        let expected = NaiveDate::from_ymd_opt(2023, 8, 4).unwrap();
-
-        assert_eq!(actual, expected);
+        }
     }
-
-    // #[test]
-    // fn test_that_fails() {
-    //     // this test is used to illustrate how a failed test might show up in the github action test report
-    //     assert_eq!(true, false);
-    // }
-
-    // #[test]
-    // fn test_can_calculate_next_date_at_year_end() {
-    //     let input = Container {
-    //         id: "11064295".to_owned(),
-    //         name: "Restaffald".to_owned(),
-    //         frequency: "1 gang på 2 uger".to_owned(),
-    //         next_empty: "02/01".to_owned(),
-    //         size: "240 L".to_owned(),
-    //     };
-
-    //     let actual = input.get_next_empty();
-    //     let expected = "2024-02-01".to_owned();
-
-    //     assert_eq!(actual, expected);
-    // }
 }
