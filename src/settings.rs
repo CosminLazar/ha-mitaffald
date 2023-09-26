@@ -34,6 +34,7 @@ pub struct MQTTConfig {
 #[allow(unused)]
 pub struct AffaldVarmeConfig {
     pub address: Address,
+    pub base_url: String,
 }
 
 //not really tested

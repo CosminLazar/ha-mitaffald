@@ -1,34 +1,46 @@
-use crate::settings::Address;
+use crate::{settings::Address, AffaldVarmeConfig};
 use chrono::{Datelike, Local, NaiveDate};
 use easy_scraper::Pattern;
 use std::collections::BTreeMap;
 
-pub fn get_containers(address: Address) -> Result<Vec<Container>, String> {
-    let remote = fetch_remote_response(address);
+pub fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, String> {
+    let response = fetch_remote_response(config);
 
-    match remote {
-        Ok(response) => match response.text() {
-            Ok(text) => Ok(extract_container_data(text)),
-            Err(err_reading_text) => Err(format!("{:?}", err_reading_text)),
-        },
-        Err(err) => Err(format!("{:?}", err)),
+    if response.is_err() {
+        return Err(format!("Error connecting: {:?}", response.err()));
+    }
+
+    let response = response.unwrap();
+    if !response.status().is_success() {
+        return Err(format!("Unexpected status code: {:?}", response.status()));
+    }
+
+    match response.text() {
+        Ok(text) => Ok(extract_container_data(text)),
+        Err(err_reading_text) => Err(format!(
+            "Error reading response content: {:?}",
+            err_reading_text
+        )),
     }
 }
 
-fn fetch_remote_response(address: Address) -> Result<reqwest::blocking::Response, reqwest::Error> {
-    let remote_url = build_remote_url(address);
+fn fetch_remote_response(
+    config: AffaldVarmeConfig,
+) -> Result<reqwest::blocking::Response, reqwest::Error> {
+    let remote_url = build_remote_url(config);
 
     reqwest::blocking::get(remote_url)
 }
 
 // impl reqwest::IntoUrl IntoUrlSealed for Address {}
 
-fn build_remote_url(address: Address) -> String {
-    match address {
+fn build_remote_url(config: AffaldVarmeConfig) -> String {
+    //todo: can we find a nicer way to compose a URL?
+    match config.address {
         Address::Id(x) => {
             format!(
-                "https://mitaffald.affaldvarme.dk/Adresse/VisAdresseInfo?address-selected-id={}",
-                x.id
+                "{}/Adresse/VisAdresseInfo?address-selected-id={}",
+                config.base_url, x.id
             )
         }
         Address::FullySpecified(_) => todo!(),
@@ -125,15 +137,68 @@ impl Container {
 
 #[cfg(test)]
 mod tests {
+    use crate::AddressId;
+
     use super::*;
     use chrono::{Datelike, Duration, Local};
     use fluent_asserter::*;
 
     #[test]
-    fn test_can_extract_data() {
-        let input = std::fs::read_to_string("src/mitaffald/sample_remote_response.html").unwrap();
+    fn can_calculate_next_date_future() {
+        let date_in_the_future = Local::now().date_naive() + Duration::days(1);
+        let input = build_container(date_in_the_future);
 
-        let actual = extract_container_data(input);
+        let actual = input.get_next_empty();
+
+        assert_that!(actual).is_equal_to(date_in_the_future);
+    }
+
+    #[test]
+    fn can_calculate_next_date_today() {
+        let today = Local::now().date_naive();
+        let input = build_container(today);
+
+        let actual = input.get_next_empty();
+
+        assert_that!(actual).is_equal_to(today);
+    }
+
+    #[test]
+    fn can_calculate_next_date_at_year_end() {
+        let today = Local::now().date_naive();
+        let yesterday = today - chrono::Duration::days(1);
+
+        let input = build_container(yesterday);
+
+        let actual = input.get_next_empty();
+        let expected =
+            NaiveDate::from_ymd_opt(yesterday.year() + 1, yesterday.month(), yesterday.day())
+                .unwrap();
+
+        assert_that!(actual).is_equal_to(expected);
+    }
+
+    #[test]
+    fn can_extract_data() {
+        let mut remote = mockito::Server::new();
+        let address_id = "123".to_string();
+        let config = AffaldVarmeConfig {
+            address: Address::Id(AddressId {
+                id: address_id.clone(),
+            }),
+            base_url: remote.url(),
+        };
+
+        let remote = remote
+            .mock(
+                "GET",
+                format!("/Adresse/VisAdresseInfo?address-selected-id={}", address_id).as_str(),
+            )
+            .with_status(200)
+            .with_body_from_file("src/mitaffald/sample_remote_response.html")
+            .create();
+
+        let actual = get_containers(config);
         let expected = vec![
             Container {
                 id: "11064295".to_owned(),
@@ -151,42 +216,31 @@ mod tests {
             },
         ];
 
-        assert_that!(actual).is_equal_to(expected);
+        remote.assert();
+
+        assert!(matches!(actual, Ok(_)));
+        assert_that!(actual.is_err()).is_equal_to(false);
+
+        assert_that!(actual.unwrap()).is_equal_to(expected);
     }
 
     #[test]
-    fn test_can_calculate_next_date_future() {
-        let date_in_the_future = Local::now().date_naive() + Duration::days(1);
-        let input = build_container(date_in_the_future);
+    fn can_handle_error_responses() {
+        let mut remote = mockito::Server::new();
+        let config = AffaldVarmeConfig {
+            address: Address::Id(AddressId { id: "123".into() }),
+            base_url: remote.url(),
+        };
 
-        let actual = input.get_next_empty();
+        let remote = remote
+            .mock("GET", mockito::Matcher::Regex(".*".to_string()))
+            .with_status(500)
+            .create();
 
-        assert_that!(actual).is_equal_to(date_in_the_future);
-    }
+        let actual = get_containers(config);
 
-    #[test]
-    fn test_can_calculate_next_date_today() {
-        let today = Local::now().date_naive();
-        let input = build_container(today);
-
-        let actual = input.get_next_empty();
-
-        assert_that!(actual).is_equal_to(today);
-    }
-
-    #[test]
-    fn test_can_calculate_next_date_at_year_end() {
-        let today = Local::now().date_naive();
-        let yesterday = today - chrono::Duration::days(1);
-
-        let input = build_container(yesterday);
-
-        let actual = input.get_next_empty();
-        let expected =
-            NaiveDate::from_ymd_opt(yesterday.year() + 1, yesterday.month(), yesterday.day())
-                .unwrap();
-
-        assert_that!(actual).is_equal_to(expected);
+        remote.assert();
+        assert!(matches!(actual, Err(_)));
     }
 
     fn build_container(next_empty: NaiveDate) -> Container {

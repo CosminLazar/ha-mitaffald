@@ -5,6 +5,10 @@ port = 1883
 username = ""
 password = ""
 
+
+[affaldvarme]
+base_url = "https://mitaffald.affaldvarme.dk"
+
 # You can specify either the Id of the address or fully qualify the address
 [affaldvarme.address]
 id = "bc334dbe-250e-4cf1-af89-f3e940867845"
