@@ -20,7 +20,7 @@ fn sync_data(settings: Settings, sensor_map: &mut HashMap<String, HASensor>) -> 
     let (mut client, mut connection) = Client::new(settings.mqtt.into(), 200);
     let mut has_errors = false;
 
-    get_containers(settings.affaldvarme.address)?
+    get_containers(settings.affaldvarme)?
         .into_iter()
         .for_each(|x| {
             let report_result = sensor_map
