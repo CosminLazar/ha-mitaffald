@@ -32,8 +32,6 @@ fn fetch_remote_response(
     reqwest::blocking::get(remote_url)
 }
 
-// impl reqwest::IntoUrl IntoUrlSealed for Address {}
-
 fn build_remote_url(config: AffaldVarmeConfig) -> String {
     //todo: can we find a nicer way to compose a URL?
     match config.address {
@@ -68,7 +66,7 @@ fn extract_container_data(html: String) -> Vec<Container> {
     </div>
     "#,
     )
-    .unwrap();
+        .unwrap();
 
     pattern
         .matches(&html)
@@ -240,7 +238,19 @@ mod tests {
         let actual = get_containers(config);
 
         remote.assert();
-        assert!(matches!(actual, Err(_)));
+        assert!(matches!(actual, Err(msg) if msg.contains("Unexpected status code")));
+    }
+
+    #[test]
+    fn can_handle_no_responses() {
+        let config = AffaldVarmeConfig {
+            address: Address::Id(AddressId { id: "123".into() }),
+            base_url: "http://127.0.0.1:123123".to_string(),
+        };
+
+        let actual = get_containers(config);
+
+        assert!(matches!(actual, Err(x) if x.contains("Error connecting")));
     }
 
     fn build_container(next_empty: NaiveDate) -> Container {
