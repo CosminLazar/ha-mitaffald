@@ -66,7 +66,7 @@ fn extract_container_data(html: String) -> Vec<Container> {
     </div>
     "#,
     )
-        .unwrap();
+    .unwrap();
 
     pattern
         .matches(&html)
