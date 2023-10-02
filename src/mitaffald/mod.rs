@@ -82,7 +82,7 @@ fn extract_error(html: &str) -> Option<String> {
 
     let matches = pattern.matches(html);
 
-    if matches.len() > 0 {
+    if !matches.is_empty() {
         return Some(matches[0].get("error").unwrap().clone());
     }
 
