@@ -1,6 +1,7 @@
 use crate::mitaffald::Container;
 use crate::settings::MQTTConfig;
 use rumqttc::{Client, LastWill, MqttOptions};
+
 const HA_AVAILABILITY_TOPIC: &str = "garbage_bin/availability";
 
 impl From<MQTTConfig> for MqttOptions {
@@ -18,6 +19,7 @@ impl From<MQTTConfig> for MqttOptions {
         config
     }
 }
+
 pub struct HASensor {
     pub container_id: String,
     configure_topic: String,
@@ -135,10 +137,63 @@ impl HASensor {
     }
 }
 
-//can we use asref here?
+//generate tests for this module
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
 
-// impl Into<HASensor> for Container {
-//     fn into(&self) -> HASensor {
-//         HASensor::new(&self)
-//     }
-// }
+    use testcontainers::{clients, core::WaitFor};
+
+    #[test]
+    fn smoke_test() {
+        let docker = clients::Cli::default();
+        let hive = docker.run(HiveMQContainer::default());
+        let port = hive.get_host_port_ipv4(1883);
+
+        println!("Ip address: {}", hive.get_bridge_ip_address());
+        println!("HiveMQ is listening on port {}", port);
+    }
+
+    const NAME: &str = "hivemq/hivemq-ce";
+    const TAG: &str = "latest";
+
+    struct HiveMQContainer {
+        _env_vars: HashMap<String, String>,
+        tag: String,
+    }
+
+    impl Default for HiveMQContainer {
+        fn default() -> Self {
+            let mut env_vars = HashMap::new();
+            env_vars.insert("discovery.type".to_owned(), "single-node".to_owned());
+            HiveMQContainer {
+                _env_vars: env_vars,
+                tag: TAG.to_owned(),
+            }
+        }
+    }
+
+    impl testcontainers::Image for HiveMQContainer {
+        type Args = ();
+
+        fn name(&self) -> String {
+            NAME.to_owned()
+        }
+
+        fn tag(&self) -> String {
+            self.tag.to_owned()
+        }
+
+        fn ready_conditions(&self) -> Vec<testcontainers::core::WaitFor> {
+            vec![WaitFor::message_on_stdout("Started HiveMQ in")]
+        }
+
+        fn expose_ports(&self) -> Vec<u16> {
+            vec![1883]
+        }
+
+        // fn bla (&self){
+        //     self.
+        // }
+    }
+}
