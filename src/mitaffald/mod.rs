@@ -1,7 +1,10 @@
-use crate::{settings::Address, AffaldVarmeConfig};
+pub mod settings;
+
 use chrono::{Datelike, Local, NaiveDate};
 use easy_scraper::Pattern;
+use settings::{Address, AffaldVarmeConfig};
 use std::collections::BTreeMap;
+use url::Url;
 
 pub fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, String> {
     let response = fetch_remote_response(config);
@@ -16,7 +19,7 @@ pub fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, Strin
     }
 
     match response.text() {
-        Ok(text) => Ok(extract_container_data(text)),
+        Ok(text) => parse_response(text),
         Err(err_reading_text) => Err(format!(
             "Error reading response content: {:?}",
             err_reading_text
@@ -32,20 +35,61 @@ fn fetch_remote_response(
     reqwest::blocking::get(remote_url)
 }
 
-fn build_remote_url(config: AffaldVarmeConfig) -> String {
-    //todo: can we find a nicer way to compose a URL?
+fn build_remote_url(config: AffaldVarmeConfig) -> Url {
+    let mut url_builder = config.base_url.clone();
+    url_builder.set_path("Adresse/VisAdresseInfo");
+
     match config.address {
         Address::Id(x) => {
-            format!(
-                "{}/Adresse/VisAdresseInfo?address-selected-id={}",
-                config.base_url, x.id
-            )
+            url_builder
+                .query_pairs_mut()
+                .append_pair("address-selected-id", x.id.as_str());
         }
-        Address::FullySpecified(_) => todo!(),
+        Address::FullySpecified(x) => {
+            //The comma (URL encoded as `%2C`) after the street_name in the address-search query string is very important and prevents the website from finding the address if is missing.
+            //https://mitaffald.affaldvarme.dk/Adresse/VisAdresseInfo?address-search=Kongevejen%2C+8000+Aarhus+C&number-search=100&address-selected-postnr=8000
+
+            url_builder
+                .query_pairs_mut()
+                .append_pair(
+                    "address-search",
+                    format!("{}, {} {}", x.street_name, x.postal_code, x.city).as_str(),
+                )
+                .append_pair("number-search", x.street_no.as_str())
+                .append_pair("address-selected-postnr", x.postal_code.as_str());
+        }
+    }
+
+    url_builder
+}
+
+fn parse_response(html: String) -> Result<Vec<Container>, String> {
+    match extract_error(html.as_str()) {
+        None => Ok(extract_container_data(html.as_str())),
+        Some(error_message) => Err(error_message),
     }
 }
 
-fn extract_container_data(html: String) -> Vec<Container> {
+fn extract_error(html: &str) -> Option<String> {
+    let pattern = Pattern::new(
+        r#"
+<div class="alert-warning">
+    {{error}}
+</div>
+        "#,
+    )
+    .unwrap();
+
+    let matches = pattern.matches(html);
+
+    if !matches.is_empty() {
+        return Some(matches[0].get("error").unwrap().clone());
+    }
+
+    None
+}
+
+fn extract_container_data(html: &str) -> Vec<Container> {
     let pattern = Pattern::new(
         r#"
     <h3>
@@ -69,7 +113,7 @@ fn extract_container_data(html: String) -> Vec<Container> {
     .unwrap();
 
     pattern
-        .matches(&html)
+        .matches(html)
         .into_iter()
         //.map(from_destructive)
         .map(from_nondestructive)
@@ -135,11 +179,159 @@ impl Container {
 
 #[cfg(test)]
 mod tests {
-    use crate::AddressId;
-
     use super::*;
+    use crate::mitaffald::settings::{Address, AddressId, TraditionalAddress};
     use chrono::{Datelike, Duration, Local};
-    use fluent_asserter::*;
+    use fluent_asserter::{prelude::StrAssertions, *};
+
+    #[test]
+    fn can_extract_data_using_address_id() {
+        let mut remote = mockito::Server::new();
+        let address_id = "123".to_string();
+        let config = AffaldVarmeConfig {
+            address: Address::Id(AddressId {
+                id: address_id.clone(),
+            }),
+            base_url: Url::parse(remote.url().as_str()).unwrap(),
+        };
+
+        let remote = remote
+            .mock(
+                "GET",
+                format!("/Adresse/VisAdresseInfo?address-selected-id={}", address_id).as_str(),
+            )
+            .with_status(200)
+            .with_body_from_file("src/mitaffald/remote_responses/container_information.html")
+            .create();
+
+        let actual = get_containers(config);
+        let expected = cotainers_from_container_information_file();
+
+        remote.assert();
+        assert_that!(actual.is_ok()).is_true();
+        assert_that!(actual.unwrap().as_slice()).is_equal_to(expected.as_slice());
+    }
+
+    #[test]
+    fn can_extract_data_using_traditional_address() {
+        let mut remote = mockito::Server::new();
+        let config = AffaldVarmeConfig {
+            address: Address::FullySpecified(TraditionalAddress {
+                street_name: "Kongevejen".to_string(),
+                street_no: "100".to_string(),
+                postal_code: "8000".to_string(),
+                city: "Aarhus C".to_string(),
+            }),
+            base_url: Url::parse(remote.url().as_str()).unwrap(),
+        };
+
+        let remote = remote
+            .mock(
+                "GET",
+                "/Adresse/VisAdresseInfo?address-search=Kongevejen%2C+8000+Aarhus+C&number-search=100&address-selected-postnr=8000",
+            )
+            .with_status(200)
+            .with_body_from_file("src/mitaffald/remote_responses/container_information.html")
+            .create();
+
+        let actual = get_containers(config);
+        let expected = cotainers_from_container_information_file();
+
+        remote.assert();
+        assert_that!(actual.is_ok()).is_true();
+        assert_that!(actual.unwrap().as_slice()).is_equal_to(expected.as_slice());
+    }
+
+    #[test]
+    fn using_traditional_address_can_detect_address_not_found() {
+        let mut remote = mockito::Server::new();
+        let config = AffaldVarmeConfig {
+            address: Address::FullySpecified(TraditionalAddress {
+                street_name: "Kongevejen".to_string(),
+                street_no: "100".to_string(),
+                postal_code: "8000".to_string(),
+                city: "Aarhus C".to_string(),
+            }),
+            base_url: Url::parse(&remote.url()).unwrap(),
+        };
+
+        let remote = remote
+            .mock(
+                "GET",
+                "/Adresse/VisAdresseInfo?address-search=Kongevejen%2C+8000+Aarhus+C&number-search=100&address-selected-postnr=8000",
+            )
+            .with_status(200)
+            .with_body_from_file("src/mitaffald/remote_responses/traditionaladdress_not_found.html")
+            .create();
+
+        let actual = get_containers(config);
+
+        remote.assert();
+        assert_that!(actual.is_err()).is_true();
+        assert_that!(actual.unwrap_err()).is_equal_to(": fejl ved opslag på adressen. Kontakt venligst KundeService Affald på mail: kundeservicegenbrug@kredslob.dk eller telefonnummer 77 88 10 10.".to_string());
+    }
+
+    #[test]
+    fn using_addressid_can_detect_address_not_found() {
+        let mut remote = mockito::Server::new();
+        let address_id = "123".to_string();
+        let config = AffaldVarmeConfig {
+            address: Address::Id(AddressId {
+                id: address_id.clone(),
+            }),
+            base_url: Url::parse(&remote.url()).unwrap(),
+        };
+
+        println!("current dir: {:?}", std::env::current_dir());
+
+        let remote = remote
+            .mock(
+                "GET",
+                format!("/Adresse/VisAdresseInfo?address-selected-id={}", address_id).as_str(),
+            )
+            .with_status(200)
+            .with_body_from_file("src/mitaffald/remote_responses/addressid_not_found.html")
+            .create();
+
+        let actual = get_containers(config);
+
+        remote.assert();
+        assert_that!(actual.is_err()).is_true();
+        assert_that!(actual.unwrap_err()).is_equal_to("Søgningen gav intet resultat".to_string());
+    }
+
+    #[test]
+    fn can_handle_server_error() {
+        let mut remote = mockito::Server::new();
+        let config = AffaldVarmeConfig {
+            address: Address::Id(AddressId { id: "123".into() }),
+            base_url: Url::parse(remote.url().as_str()).unwrap(),
+        };
+
+        let remote = remote
+            .mock("GET", mockito::Matcher::Regex(".*".to_string()))
+            .with_status(500)
+            .create();
+
+        let actual = get_containers(config);
+
+        remote.assert();
+        assert_that!(actual.is_err()).is_true();
+        assert_that!(actual.unwrap_err()).contains("Unexpected status code");
+    }
+
+    #[test]
+    fn can_handle_no_responses() {
+        let config = AffaldVarmeConfig {
+            address: Address::Id(AddressId { id: "123".into() }),
+            base_url: Url::parse("http://127.0.0.1:12312").unwrap(),
+        };
+
+        let actual = get_containers(config);
+
+        assert_that!(actual.is_err()).is_true();
+        assert_that!(actual.unwrap_err()).contains("Error connecting");
+    }
 
     #[test]
     fn can_calculate_next_date_future() {
@@ -176,28 +368,8 @@ mod tests {
         assert_that!(actual).is_equal_to(expected);
     }
 
-    #[test]
-    fn can_extract_data() {
-        let mut remote = mockito::Server::new();
-        let address_id = "123".to_string();
-        let config = AffaldVarmeConfig {
-            address: Address::Id(AddressId {
-                id: address_id.clone(),
-            }),
-            base_url: remote.url(),
-        };
-
-        let remote = remote
-            .mock(
-                "GET",
-                format!("/Adresse/VisAdresseInfo?address-selected-id={}", address_id).as_str(),
-            )
-            .with_status(200)
-            .with_body_from_file("src/mitaffald/sample_remote_response.html")
-            .create();
-
-        let actual = get_containers(config);
-        let expected = vec![
+    fn cotainers_from_container_information_file() -> [Container; 2] {
+        [
             Container {
                 id: "11064295".to_owned(),
                 name: "Restaffald".to_owned(),
@@ -212,45 +384,7 @@ mod tests {
                 next_empty: "03/08".to_owned(),
                 size: "240 L".to_owned(),
             },
-        ];
-
-        remote.assert();
-
-        assert!(matches!(actual, Ok(_)));
-        assert_that!(actual.is_err()).is_equal_to(false);
-
-        assert_that!(actual.unwrap()).is_equal_to(expected);
-    }
-
-    #[test]
-    fn can_handle_error_responses() {
-        let mut remote = mockito::Server::new();
-        let config = AffaldVarmeConfig {
-            address: Address::Id(AddressId { id: "123".into() }),
-            base_url: remote.url(),
-        };
-
-        let remote = remote
-            .mock("GET", mockito::Matcher::Regex(".*".to_string()))
-            .with_status(500)
-            .create();
-
-        let actual = get_containers(config);
-
-        remote.assert();
-        assert!(matches!(actual, Err(msg) if msg.contains("Unexpected status code")));
-    }
-
-    #[test]
-    fn can_handle_no_responses() {
-        let config = AffaldVarmeConfig {
-            address: Address::Id(AddressId { id: "123".into() }),
-            base_url: "http://127.0.0.1:123123".to_string(),
-        };
-
-        let actual = get_containers(config);
-
-        assert!(matches!(actual, Err(x) if x.contains("Error connecting")));
+        ]
     }
 
     fn build_container(next_empty: NaiveDate) -> Container {
