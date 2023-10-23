@@ -1,7 +1,6 @@
 use ha_mitaffald::homeassistant::HASensor;
-use ha_mitaffald::mitaffald::get_containers;
 use ha_mitaffald::settings::Settings;
-use rumqttc::Client;
+use ha_mitaffald::sync_data;
 use std::collections::HashMap;
 
 fn main() {
@@ -15,38 +14,5 @@ fn main() {
             "Failure while reporting data (some entities may have been updated): {}",
             x
         );
-    }
-}
-
-fn sync_data(settings: Settings, sensor_map: &mut HashMap<String, HASensor>) -> Result<(), String> {
-    let (mut client, mut connection) = Client::new(settings.mqtt.into(), 200);
-    let mut has_errors = false;
-
-    get_containers(settings.affaldvarme)?
-        .into_iter()
-        .for_each(|x| {
-            let report_result = sensor_map
-                .entry(x.id.clone())
-                .or_insert_with(|| HASensor::new(&x))
-                .report(x, &mut client);
-
-            has_errors = has_errors || report_result.is_err();
-        });
-
-    //calling disconnect() causes an error in the connection iterator
-    if let Err(x) = client.disconnect() {
-        return Err(x.to_string());
-    }
-
-    //create own error and provide conversion from this?
-    //client.disconnect()?;
-
-    //iterate the connection untill we hit the above generated error
-    connection.iter().take_while(|x| x.is_ok()).count();
-
-    if has_errors {
-        Err("Failed to report all containers".into())
-    } else {
-        Ok(())
     }
 }
