@@ -23,6 +23,7 @@ fn smoke_test() {
     let docker = clients::Cli::default();
     let mqtt_server = docker.run(HiveMQContainer::default());
     let mqtt_server_port = mqtt_server.get_host_port_ipv4(1883);
+    println!("Running local MQTT server on port {}", mqtt_server_port);
 
     let mut mit_affald_server = mockito::Server::new();
     let mit_affald_server_url = Url::parse(&mit_affald_server.url()).unwrap();
