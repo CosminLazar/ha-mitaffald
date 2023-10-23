@@ -1,5 +1,6 @@
 use std::{
     cmp::Ordering,
+    fmt::{self, Display, Formatter},
     sync::{atomic::AtomicBool, Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -95,4 +96,34 @@ impl CollectingClient {
 pub enum WaitError {
     Timeout(Vec<Publish>),
     TooMany(Vec<Publish>),
+}
+
+impl Display for WaitError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let payload_print = |f: &mut Formatter<'_>, publishes: &Vec<Publish>| -> fmt::Result {
+            for publish in publishes {
+                writeln!(
+                    f,
+                    "({} : {}), ",
+                    publish.topic,
+                    String::from_utf8(publish.payload.to_vec()).unwrap()
+                )?;
+            }
+
+            Ok(())
+        };
+
+        match self {
+            WaitError::Timeout(publishes) => {
+                write!(f, "Timeout: [")?;
+                payload_print(f, publishes)?;
+                write!(f, "]")
+            }
+            WaitError::TooMany(publishes) => {
+                write!(f, "TooMany: [")?;
+                payload_print(f, publishes)?;
+                write!(f, "]")
+            }
+        }
+    }
 }

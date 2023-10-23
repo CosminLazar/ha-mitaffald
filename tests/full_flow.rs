@@ -63,10 +63,11 @@ fn smoke_test() {
     );
 
     let collect_result = collecting_client.wait_for_messages(6, Duration::from_secs(20));
+
     assert!(
         collect_result.is_ok(),
-        "Error waiting for messages: {:?}",
-        collect_result.err()
+        "Error waiting for messages: {}",
+        collect_result.unwrap_err()
     );
 
     mit_affald_server.assert();
