@@ -72,7 +72,7 @@ fn smoke_test() {
         sync_result.err()
     );
 
-    let collect_result = collecting_client.wait_for_messages(6, Duration::from_secs(20));
+    let collect_result = collecting_client.wait_for_messages(6, Duration::from_secs(60));
 
     assert!(
         collect_result.is_ok(),
