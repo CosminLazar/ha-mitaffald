@@ -13,15 +13,24 @@ use ha_mitaffald::{
 use hivemq::HiveMQContainer;
 use rumqttc::Publish;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::time::Duration;
-use testcontainers::clients;
+use std::{collections::HashMap, time::SystemTime};
+use testcontainers::{clients, Image, RunnableImage};
 use url::Url;
 
 #[test]
 fn smoke_test() {
     let docker = clients::Cli::default();
-    let mqtt_server = docker.run(HiveMQContainer::default());
+    let image: RunnableImage<HiveMQContainer> = HiveMQContainer::default().into();
+    let image = image.with_container_name(format!(
+        "name{:?}",
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+    ));
+    // let mqtt_server = docker.run(HiveMQContainer::default());
+    let mqtt_server = docker.run(image);
+
     let mqtt_server_port = mqtt_server.get_host_port_ipv4(1883);
     println!("Running local MQTT server on port {}", mqtt_server_port);
 
