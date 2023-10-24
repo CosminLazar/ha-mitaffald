@@ -53,7 +53,7 @@ fn smoke_test() {
         },
         mqtt: ha_mitaffald::settings::MQTTConfig {
             client_id: "test".to_string(),
-            host: "127.0.0.1".to_string(),
+            host: "localhost".to_string(),
             port: mqtt_server_port,
             username: "".to_owned(),
             password: "".to_owned(),
