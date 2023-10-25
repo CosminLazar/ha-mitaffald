@@ -63,8 +63,6 @@ jobs:
   coverage:
     name: Code coverage
     runs-on: ubuntu-latest
-    # temporary wait for test to see if it fixes mqtt errors
-    needs: test 
     env:
       CARGO_TERM_COLOR: always
     steps:
