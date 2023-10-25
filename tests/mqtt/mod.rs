@@ -87,13 +87,15 @@ impl CollectingClient {
         if let Some(handle) = self.join_handle {
             handle.join().unwrap();
         }
-        //todo: can get rid of clone here?
-        let received_messages = self.received_messages.lock().unwrap();
+
+        let inner_mutex =
+            Arc::try_unwrap(self.received_messages).expect("More than one reference detected");
+        let received_messages = inner_mutex.into_inner().unwrap();
 
         match received_messages.len().cmp(&count) {
-            Ordering::Equal => Ok(received_messages.clone()),
-            Ordering::Greater => Err(WaitError::TooMany(received_messages.clone())),
-            Ordering::Less => Err(WaitError::Timeout(received_messages.clone())),
+            Ordering::Equal => Ok(received_messages),
+            Ordering::Greater => Err(WaitError::TooMany(received_messages)),
+            Ordering::Less => Err(WaitError::Timeout(received_messages)),
         }
     }
 }
