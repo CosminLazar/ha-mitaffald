@@ -15,3 +15,5 @@ Cargo.lock
 
 # Secret configuration
 config/secrets.toml
+
+.idea/

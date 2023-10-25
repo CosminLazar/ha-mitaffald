@@ -20,7 +20,7 @@ impl Settings {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct MQTTConfig {
     pub host: String,

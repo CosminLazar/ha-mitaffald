@@ -1,6 +1,7 @@
 use crate::mitaffald::Container;
 use crate::settings::MQTTConfig;
 use rumqttc::{Client, LastWill, MqttOptions};
+
 const HA_AVAILABILITY_TOPIC: &str = "garbage_bin/availability";
 
 impl From<MQTTConfig> for MqttOptions {
@@ -18,6 +19,7 @@ impl From<MQTTConfig> for MqttOptions {
         config
     }
 }
+
 pub struct HASensor {
     pub container_id: String,
     configure_topic: String,
@@ -59,8 +61,7 @@ impl HASensor {
         client: &mut Client,
     ) -> Result<(), rumqttc::ClientError> {
         let payload = format!(
-            r#"
-            {{
+            r#"{{
               "object_id": "ha_affaldvarme_{id}",
               "unique_id": "ha_affaldvarme_{id}",
               "name": "{sensor_name}",
@@ -134,11 +135,3 @@ impl HASensor {
         client.publish(&self.state_topic, rumqttc::QoS::AtLeastOnce, false, payload)
     }
 }
-
-//can we use asref here?
-
-// impl Into<HASensor> for Container {
-//     fn into(&self) -> HASensor {
-//         HASensor::new(&self)
-//     }
-// }
