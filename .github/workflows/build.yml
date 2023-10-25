@@ -26,13 +26,7 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: nextest
-          
-      - name: Run unit tests (cargo test)
-        env:
-          CARGO_TERM_COLOR: always
-        run: |
-          cargo test
-          
+
       - name: Run unit tests (nextest)
         env:
           CARGO_TERM_COLOR: always
