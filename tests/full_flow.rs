@@ -60,11 +60,8 @@ fn smoke_test() {
         },
     };
 
-    let mut collecting_client = CollectingClient::new(&settings.mqtt);
-    collecting_client.start();
-    //sleep 4 seconds
-    println!("Sleeping for 4 seconds to make sure the consumer started...");
-    std::thread::sleep(Duration::from_secs(4));
+    let mut collecting_client = CollectingClient::new();
+    collecting_client.start(&settings.mqtt);
 
     let mut sensor_map: HashMap<String, HASensor> = HashMap::new();
     let sync_result = sync_data(settings, &mut sensor_map);

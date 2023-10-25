@@ -5,51 +5,57 @@ use std::{
     time::{Duration, Instant},
 };
 
-use rumqttc::Publish;
+use rumqttc::{Client, Event, Packet, Publish, QoS};
 
 pub struct CollectingClient {
     received_messages: std::sync::Arc<Mutex<Vec<Publish>>>,
     join_handle: Option<std::thread::JoinHandle<()>>,
-    config: ha_mitaffald::settings::MQTTConfig,
     terminate_flag: Arc<AtomicBool>,
 }
 
 impl CollectingClient {
-    pub fn new(config: &ha_mitaffald::settings::MQTTConfig) -> Self {
-        let config = ha_mitaffald::settings::MQTTConfig {
-            client_id: "collecting-client".to_owned(),
-            ..config.clone()
-        };
-
+    pub fn new() -> Self {
         Self {
-            config,
             received_messages: Arc::new(Mutex::new(Vec::new())),
             join_handle: None,
             terminate_flag: Arc::new(AtomicBool::new(false)),
         }
     }
 
-    pub fn start(&mut self) {
-        let config = self.config.clone();
+    pub fn start(&mut self, config: &ha_mitaffald::settings::MQTTConfig) {
+        let config = ha_mitaffald::settings::MQTTConfig {
+            client_id: "collecting-client".to_owned(),
+            ..config.clone()
+        };
         let received_messages = self.received_messages.clone();
         let stopping_flag = Arc::clone(&self.terminate_flag);
-        let (mut client, mut connection) = rumqttc::Client::new(config.into(), 100);
-        client.subscribe("#", rumqttc::QoS::AtLeastOnce).unwrap();
+        let (tx, rx) = std::sync::mpsc::channel::<()>();
 
-        let handle = std::thread::spawn(move || loop {
-            let message = connection.recv_timeout(Duration::from_secs(1));
+        let handle = std::thread::spawn(move || {
+            let (mut client, mut connection) = Client::new(config.into(), 100);
+            client.subscribe("#", QoS::AtLeastOnce).unwrap();
 
-            println!("Received message: {:?}", message);
-            if let Ok(Ok(rumqttc::Event::Incoming(rumqttc::Packet::Publish(message)))) = message {
-                received_messages.lock().unwrap().push(message);
-            }
+            loop {
+                let message = connection.recv_timeout(Duration::from_secs(1));
+                println!("Received message: {:?}", &message);
+                match message {
+                    Ok(Ok(Event::Incoming(Packet::SubAck(_)))) => {
+                        tx.send(()).expect("Cannot report ready to main thread")
+                    }
+                    Ok(Ok(Event::Incoming(Packet::Publish(message)))) => {
+                        received_messages.lock().unwrap().push(message);
+                    }
+                    _ => {}
+                }
 
-            if stopping_flag.load(std::sync::atomic::Ordering::Relaxed) {
-                println!("Thread is terminating");
-                break;
+                if stopping_flag.load(std::sync::atomic::Ordering::Relaxed) {
+                    println!("Thread is terminating");
+                    break;
+                }
             }
         });
 
+        rx.recv().expect("Consumer thread did not report ready");
         self.join_handle = Some(handle);
     }
 
