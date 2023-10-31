@@ -4,8 +4,10 @@ use chrono::{Datelike, Local, NaiveDate};
 use easy_scraper::Pattern;
 use settings::{Address, AffaldVarmeConfig};
 use std::collections::BTreeMap;
+use tracing::instrument;
 use url::Url;
 
+#[instrument]
 pub fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, String> {
     let response = fetch_remote_response(config);
 

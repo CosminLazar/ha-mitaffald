@@ -4,15 +4,22 @@ use homeassistant::HASensor;
 use mitaffald::get_containers;
 use rumqttc::Client;
 use settings::Settings;
+use tracing::{info, instrument, trace};
 
 pub mod homeassistant;
 pub mod mitaffald;
 pub mod settings;
 
+#[instrument]
 pub fn sync_data(
     settings: Settings,
     sensor_map: &mut HashMap<String, HASensor>,
 ) -> Result<(), String> {
+    trace!("Starting sync_data");
+    info!("Connecting to MQTT broker");
+    info!(stg = ?settings, "Connecting to MQTT broker without referencing stg");
+    info!(stg = ?settings, "Connecting to MQTT broker with referencing part of settings: {}", settings.mqtt.host);
+
     let (mut client, mut connection) = Client::new(settings.mqtt.into(), 200);
     let mut has_errors = false;
 

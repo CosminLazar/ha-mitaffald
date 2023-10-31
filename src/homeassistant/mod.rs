@@ -1,6 +1,8 @@
 use crate::mitaffald::Container;
 use crate::settings::MQTTConfig;
 use rumqttc::{Client, LastWill, MqttOptions};
+use serde::de;
+use tracing::instrument;
 
 const HA_AVAILABILITY_TOPIC: &str = "garbage_bin/availability";
 
@@ -20,6 +22,7 @@ impl From<MQTTConfig> for MqttOptions {
     }
 }
 
+#[derive(Debug)]
 pub struct HASensor {
     pub container_id: String,
     configure_topic: String,
@@ -40,6 +43,7 @@ impl HASensor {
         }
     }
 
+    #[instrument(skip(client))]
     pub fn report(
         &mut self,
         container: Container,
