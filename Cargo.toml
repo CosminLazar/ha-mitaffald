@@ -18,5 +18,5 @@ url = { version = "2.4.1", features = ["serde"] }
 [dev-dependencies]
 fluent-asserter = "0.1.9"
 mockito = "1.2.0"
-testcontainers = "0.14.0"
+testcontainers = "0.15.0"
 assert-json-diff = "2.0.2"
