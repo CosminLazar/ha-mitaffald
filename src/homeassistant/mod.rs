@@ -1,6 +1,6 @@
 use crate::mitaffald::Container;
 use crate::settings::MQTTConfig;
-use rumqttc::{Client, LastWill, MqttOptions};
+use rumqttc::{AsyncClient, LastWill, MqttOptions};
 use serde::de;
 use tracing::instrument;
 
@@ -44,25 +44,25 @@ impl HASensor {
     }
 
     #[instrument(skip(client))]
-    pub fn report(
+    pub async fn report(
         &mut self,
         container: Container,
-        client: &mut Client,
+        client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
         if !self.is_initialized {
-            self.register_sensor(&container, client)?;
-            self.register_sensor_availability(client)?;
+            self.register_sensor(&container, client).await?;
+            self.register_sensor_availability(client).await?;
             self.is_initialized = true;
         }
 
-        self.register_sensor_value(&container, client)?;
+        self.register_sensor_value(&container, client).await?;
         Ok(())
     }
 
-    fn register_sensor(
+    async fn register_sensor(
         &mut self,
         container: &Container,
-        client: &mut Client,
+        client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
         let payload = format!(
             r#"{{
@@ -93,30 +93,34 @@ impl HASensor {
             id = container.id,
         );
 
-        client.publish(
-            &self.configure_topic,
-            rumqttc::QoS::AtLeastOnce,
-            false,
-            payload,
-        )
+        client
+            .publish(
+                &self.configure_topic,
+                rumqttc::QoS::AtLeastOnce,
+                false,
+                payload,
+            )
+            .await
     }
 
-    fn register_sensor_availability(
+    async fn register_sensor_availability(
         &self,
-        client: &mut Client,
+        client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
-        client.publish(
-            HA_AVAILABILITY_TOPIC,
-            rumqttc::QoS::AtLeastOnce,
-            true,
-            "online",
-        )
+        client
+            .publish(
+                HA_AVAILABILITY_TOPIC,
+                rumqttc::QoS::AtLeastOnce,
+                true,
+                "online",
+            )
+            .await
     }
 
-    fn register_sensor_value(
+    async fn register_sensor_value(
         &self,
         container: &Container,
-        client: &mut Client,
+        client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
         let payload = format!(
             r#"
@@ -136,6 +140,8 @@ impl HASensor {
             last_update = chrono::Local::now().to_rfc3339(),
         );
 
-        client.publish(&self.state_topic, rumqttc::QoS::AtLeastOnce, false, payload)
+        client
+            .publish(&self.state_topic, rumqttc::QoS::AtLeastOnce, false, payload)
+            .await
     }
 }

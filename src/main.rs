@@ -10,7 +10,8 @@ use tracing_subscriber::{util::SubscriberInitExt, FmtSubscriber, Layer};
 
 // #[tokio::main]
 
-fn main() {
+#[tokio::main]
+async fn main() {
     config();
     
     info!("Starting");
@@ -29,7 +30,7 @@ fn main() {
     let settings = Settings::new().expect("Failed to read settings");
     let mut sensor_map: HashMap<String, HASensor> = HashMap::new();
 
-    let report = sync_data(settings, &mut sensor_map);
+    let report = sync_data(settings, &mut sensor_map).await;
 
     if let Err(x) = report {
         eprintln!(

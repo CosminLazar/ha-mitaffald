@@ -8,8 +8,8 @@ use tracing::instrument;
 use url::Url;
 
 #[instrument]
-pub fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, String> {
-    let response = fetch_remote_response(config);
+pub async fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, String> {
+    let response = fetch_remote_response(config).await;
 
     if response.is_err() {
         return Err(format!("Error connecting: {:?}", response.err()));
@@ -20,7 +20,7 @@ pub fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, Strin
         return Err(format!("Unexpected status code: {:?}", response.status()));
     }
 
-    match response.text() {
+    match response.text().await {
         Ok(text) => parse_response(text),
         Err(err_reading_text) => Err(format!(
             "Error reading response content: {:?}",
@@ -29,12 +29,12 @@ pub fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, Strin
     }
 }
 
-fn fetch_remote_response(
+async fn fetch_remote_response(
     config: AffaldVarmeConfig,
-) -> Result<reqwest::blocking::Response, reqwest::Error> {
+) -> Result<reqwest::Response, reqwest::Error> {
     let remote_url = build_remote_url(config);
 
-    reqwest::blocking::get(remote_url)
+    reqwest::get(remote_url).await
 }
 
 fn build_remote_url(config: AffaldVarmeConfig) -> Url {
@@ -186,8 +186,8 @@ mod tests {
     use chrono::{Datelike, Duration, Local};
     use fluent_asserter::{prelude::StrAssertions, *};
 
-    #[test]
-    fn can_extract_data_using_address_id() {
+    #[tokio::test]
+    async fn can_extract_data_using_address_id() {
         let mut remote = mockito::Server::new();
         let address_id = "123".to_string();
         let config = AffaldVarmeConfig {
@@ -206,7 +206,7 @@ mod tests {
             .with_body_from_file("src/mitaffald/remote_responses/container_information.html")
             .create();
 
-        let actual = get_containers(config);
+        let actual = get_containers(config).await;
         let expected = cotainers_from_container_information_file();
 
         remote.assert();
@@ -214,8 +214,8 @@ mod tests {
         assert_that!(actual.unwrap().as_slice()).is_equal_to(expected.as_slice());
     }
 
-    #[test]
-    fn can_extract_data_using_traditional_address() {
+    #[tokio::test]
+    async fn can_extract_data_using_traditional_address() {
         let mut remote = mockito::Server::new();
         let config = AffaldVarmeConfig {
             address: Address::FullySpecified(TraditionalAddress {
@@ -236,7 +236,7 @@ mod tests {
             .with_body_from_file("src/mitaffald/remote_responses/container_information.html")
             .create();
 
-        let actual = get_containers(config);
+        let actual = get_containers(config).await;
         let expected = cotainers_from_container_information_file();
 
         remote.assert();
@@ -244,8 +244,8 @@ mod tests {
         assert_that!(actual.unwrap().as_slice()).is_equal_to(expected.as_slice());
     }
 
-    #[test]
-    fn using_traditional_address_can_detect_address_not_found() {
+    #[tokio::test]
+    async fn using_traditional_address_can_detect_address_not_found() {
         let mut remote = mockito::Server::new();
         let config = AffaldVarmeConfig {
             address: Address::FullySpecified(TraditionalAddress {
@@ -266,15 +266,15 @@ mod tests {
             .with_body_from_file("src/mitaffald/remote_responses/traditionaladdress_not_found.html")
             .create();
 
-        let actual = get_containers(config);
+        let actual = get_containers(config).await;
 
         remote.assert();
         assert_that!(actual.is_err()).is_true();
         assert_that!(actual.unwrap_err()).is_equal_to(": fejl ved opslag på adressen. Kontakt venligst KundeService Affald på mail: kundeservicegenbrug@kredslob.dk eller telefonnummer 77 88 10 10.".to_string());
     }
 
-    #[test]
-    fn using_addressid_can_detect_address_not_found() {
+    #[tokio::test]
+    async fn using_addressid_can_detect_address_not_found() {
         let mut remote = mockito::Server::new();
         let address_id = "123".to_string();
         let config = AffaldVarmeConfig {
@@ -295,15 +295,15 @@ mod tests {
             .with_body_from_file("src/mitaffald/remote_responses/addressid_not_found.html")
             .create();
 
-        let actual = get_containers(config);
+        let actual = get_containers(config).await;
 
         remote.assert();
         assert_that!(actual.is_err()).is_true();
         assert_that!(actual.unwrap_err()).is_equal_to("Søgningen gav intet resultat".to_string());
     }
 
-    #[test]
-    fn can_handle_server_error() {
+    #[tokio::test]
+    async fn can_handle_server_error() {
         let mut remote = mockito::Server::new();
         let config = AffaldVarmeConfig {
             address: Address::Id(AddressId { id: "123".into() }),
@@ -315,21 +315,21 @@ mod tests {
             .with_status(500)
             .create();
 
-        let actual = get_containers(config);
+        let actual = get_containers(config).await;
 
         remote.assert();
         assert_that!(actual.is_err()).is_true();
         assert_that!(actual.unwrap_err()).contains("Unexpected status code");
     }
 
-    #[test]
-    fn can_handle_no_responses() {
+    #[tokio::test]
+    async fn can_handle_no_responses() {
         let config = AffaldVarmeConfig {
             address: Address::Id(AddressId { id: "123".into() }),
             base_url: Url::parse("http://127.0.0.1:12312").unwrap(),
         };
 
-        let actual = get_containers(config);
+        let actual = get_containers(config).await;
 
         assert_that!(actual.is_err()).is_true();
         assert_that!(actual.unwrap_err()).contains("Error connecting");

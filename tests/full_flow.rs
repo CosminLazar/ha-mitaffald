@@ -18,8 +18,8 @@ use std::time::Duration;
 use testcontainers::clients;
 use url::Url;
 
-#[test]
-fn smoke_test() {
+#[tokio::test]
+async fn smoke_test() {
     let docker = clients::Cli::default();
     let mqtt_server = docker.run(HiveMQContainer::default());
     let mqtt_server_port = mqtt_server.get_host_port_ipv4(1883);
@@ -54,7 +54,7 @@ fn smoke_test() {
     collecting_client.start(&settings.mqtt);
 
     let mut sensor_map: HashMap<String, HASensor> = HashMap::new();
-    let sync_result = sync_data(settings, &mut sensor_map);
+    let sync_result = sync_data(settings, &mut sensor_map).await;
 
     assert!(
         sync_result.is_ok(),
