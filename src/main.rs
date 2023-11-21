@@ -13,12 +13,11 @@ use tracing_subscriber::{util::SubscriberInitExt, FmtSubscriber, Layer};
 #[tokio::main]
 async fn main() {
     config();
-    
+
     info!("Starting");
     let tracer = opentelemetry::global::tracer("ex.com/basic");
-    tracer.in_span("operation", |cx| {
-        info!(target: "my-target", "hello from {}. My price is {}. I am also inside a Span!", "banana", 2.99);
-    
+    // tracer.in_span("operation", |cx| {
+    info!(target: "my-target", "hello from {}. My price is {}. I am also inside a Span!", "banana", 2.99);
 
     info!("heelo world!");
     info!(
@@ -38,7 +37,7 @@ async fn main() {
             x
         );
     }
-});
+    // });
     //sleep 5 seconds
     println!("Sleeping 5 seconds");
     let five_seconds = std::time::Duration::from_secs(5);
@@ -67,7 +66,7 @@ fn grafana_new(headers: HashMap<String, String>) -> opentelemetry_sdk::trace::Tr
         .with_trace_config(
             opentelemetry_sdk::trace::Config::default().with_resource(resource.clone()),
         )
-        .install_simple()
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
         .unwrap();
 
     return tracing_tracer;
@@ -93,7 +92,7 @@ fn init_logs(
                 .with_protocol(opentelemetry_otlp::Protocol::HttpBinary),
         )
         // .with_exporter(opentelemetry_stdout::LogExporter::default())
-        .install_simple()
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
 }
 
 fn config() {
