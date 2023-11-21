@@ -7,6 +7,7 @@ use serde::Deserialize;
 pub struct Settings {
     pub mqtt: MQTTConfig,
     pub affaldvarme: AffaldVarmeConfig,
+    pub otlp: OtlpConfig,
 }
 
 impl Settings {
@@ -28,4 +29,11 @@ pub struct MQTTConfig {
     pub username: String,
     pub password: String,
     pub client_id: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[allow(unused)]
+pub struct OtlpConfig {
+    pub user: String,
+    pub password: String,
 }

@@ -1,5 +1,5 @@
 use ha_mitaffald::homeassistant::HASensor;
-use ha_mitaffald::settings::Settings;
+use ha_mitaffald::settings::{OtlpConfig, Settings};
 use ha_mitaffald::sync_data;
 use opentelemetry::trace::Tracer;
 use opentelemetry_otlp::WithExportConfig;
@@ -12,7 +12,9 @@ use tracing_subscriber::{util::SubscriberInitExt, FmtSubscriber, Layer};
 
 #[tokio::main]
 async fn main() {
-    config();
+    let settings = Settings::new().expect("Failed to read settings");
+
+    config(&settings.otlp);
 
     info!("Starting");
     let tracer = opentelemetry::global::tracer("ex.com/basic");
@@ -26,7 +28,7 @@ async fn main() {
         references = 1,
         another_dude = "value",
     );
-    let settings = Settings::new().expect("Failed to read settings");
+
     let mut sensor_map: HashMap<String, HASensor> = HashMap::new();
 
     let report = sync_data(settings, &mut sensor_map).await;
@@ -95,9 +97,14 @@ fn init_logs(
         .install_batch(opentelemetry_sdk::runtime::Tokio)
 }
 
-fn config() {
+fn config(config: &OtlpConfig) {
     let mut headers = HashMap::new();
-    headers.insert("Authorization".to_owned(), "Basic Nzc0NzM2OmdsY19leUp2SWpvaU9UYzJNamd4SWl3aWJpSTZJbWhoTFcxcGRHRm1abUZzWkMxb1lTMXRhWFJoWm1aaGJHUWlMQ0pySWpvaU5UaHZNM0l4TnpOQ1pYVkZVVWhVVlRBM2JURnVabEV5SWl3aWJTSTZleUp5SWpvaWRYTWlmWDA9".to_owned());
+
+    headers.insert(
+        "Authorization".to_owned(),
+        http_auth_basic::Credentials::new(config.user.as_str(), config.password.as_str())
+            .as_http_header(),
+    );
 
     //trace/log shipping generates logs, remember to deactivate if lowering the log level
     init_logs(headers.clone()).unwrap();
