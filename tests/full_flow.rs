@@ -7,7 +7,7 @@ use fluent_asserter::{assert_that, create_asserter};
 use ha_mitaffald::{
     homeassistant::HASensor,
     mitaffald::settings::{Address, AddressId, AffaldVarmeConfig},
-    settings::Settings,
+    settings::{OtlpConfig, Settings},
     sync_data,
 };
 use hivemq::HiveMQContainer;
@@ -46,6 +46,10 @@ async fn smoke_test() {
             host: "localhost".to_string(),
             port: mqtt_server_port,
             username: "".to_owned(),
+            password: "".to_owned(),
+        },
+        otlp: OtlpConfig {
+            user: "".to_owned(),
             password: "".to_owned(),
         },
     };
