@@ -2,17 +2,36 @@ use std::collections::HashMap;
 
 use homeassistant::HASensor;
 use mitaffald::get_containers;
+use opentelemetry::trace::Tracer;
 use rumqttc::AsyncClient;
 use settings::Settings;
+use tracing::{info, instrument, trace};
 
 pub mod homeassistant;
 pub mod mitaffald;
 pub mod settings;
 
+#[instrument(fields(cosmin = "boss"))]
 pub async fn sync_data(
     settings: Settings,
     sensor_map: &mut HashMap<String, HASensor>,
 ) -> Result<(), String> {
+    let span = tracing::span!(tracing::Level::INFO, "my span");
+    let entry = span.enter();
+    info!("own span");
+    drop(entry);
+
+    // let tracer = opentelemetry::global::tracer("ex.com/basic");
+    // tracer.in_span("sync_data_manual", |cx| {
+    //     info!(target: "my-target", "hello from {}. My price is {}. I am also inside a Span!", "banana", 2.99);
+    // });
+
+    tracing::event!(tracing::Level::INFO, "inside my_function!");
+    trace!("Starting sync_data");
+    info!("Connecting to MQTT broker");
+    info!(stg = ?settings, "Connecting to MQTT broker without referencing stg");
+    info!(stg = ?settings, "Connecting to MQTT broker with referencing part of settings: {}", settings.mqtt.host);
+
     let (mut client, mut connection) = AsyncClient::new(settings.mqtt.into(), 200);
     let mut has_errors = false;
 
