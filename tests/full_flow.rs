@@ -101,7 +101,7 @@ fn actual(messages: Vec<Publish>) -> HashMap<String, Vec<String>> {
         let topic = message.topic;
         let payload = String::from_utf8(message.payload.to_vec()).unwrap();
 
-        actual.entry(topic).or_insert_with(Vec::new).push(payload);
+        actual.entry(topic).or_default().push(payload);
     }
 
     actual
