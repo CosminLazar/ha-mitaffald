@@ -75,7 +75,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:          
           files: lcov.info
-          use_oidc: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 # this is needed by zgosalvez/github-actions-report-lcov
       - name: Setup LCOV
         uses: hrishikesh-kadam/setup-lcov@v1        
