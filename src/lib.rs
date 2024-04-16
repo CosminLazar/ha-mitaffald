@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use homeassistant::HASensor;
-use mitaffald::get_containers;
+use mitaffald::{get_containers, Container};
 use rumqttc::AsyncClient;
 use settings::Settings;
 
@@ -16,9 +16,30 @@ pub async fn sync_data(
     let (mut client, mut connection) = AsyncClient::new(settings.mqtt.into(), 200);
     let mut has_errors = false;
 
-    for container in get_containers(settings.affaldvarme).await? {
+    for container in get_containers(settings.affaldvarme)
+        .await?
+        .into_iter()
+        .fold(
+            HashMap::<String, Container>::new(),
+            |mut accumulator, item| {
+                match accumulator.entry(item.name.clone()) {
+                    std::collections::hash_map::Entry::Occupied(mut existing) => {
+                        if existing.get().date > item.date {
+                            existing.insert(item);
+                        }
+                    }
+                    std::collections::hash_map::Entry::Vacant(v) => {
+                        v.insert(item);
+                    }
+                }
+
+                accumulator
+            },
+        )
+        .into_values()
+    {
         let report_result = sensor_map
-            .entry(container.id.clone())
+            .entry(container.name.clone())
             .or_insert_with(|| HASensor::new(&container))
             .report(container, &mut client)
             .await;
