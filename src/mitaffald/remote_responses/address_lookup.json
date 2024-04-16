@@ -1,0 +1,157 @@
+[
+    {
+        "id": "0a3f50c3-6f07-32b8-e044-0003ba298018",
+        "kvhx": "07514448_100_______",
+        "status": 1,
+        "darstatus": 3,
+        "href": "https://api.dataforsyningen.dk/adresser/0a3f50c3-6f07-32b8-e044-0003ba298018",
+        "historik": {
+            "oprettet": "2000-02-05T15:26:20.000",
+            "ændret": "2000-02-05T15:26:20.000",
+            "ikrafttrædelse": "2000-02-05T15:26:20.000",
+            "nedlagt": null
+        },
+        "etage": null,
+        "dør": null,
+        "adressebetegnelse": "Kongevejen 100, 8000 Aarhus C",
+        "adgangsadresse": {
+            "href": "https://api.dataforsyningen.dk/adgangsadresser/0a3f5096-768a-32b8-e044-0003ba298018",
+            "id": "0a3f5096-768a-32b8-e044-0003ba298018",
+            "adressebetegnelse": "Kongevejen 100, 8000 Aarhus C",
+            "kvh": "07514448_100",
+            "status": 1,
+            "darstatus": 3,
+            "vejstykke": {
+                "href": "https://api.dataforsyningen.dk/vejstykker/751/4448",
+                "navn": "Kongevejen",
+                "adresseringsnavn": "Kongevejen",
+                "kode": "4448"
+            },
+            "husnr": "100",
+            "navngivenvej": {
+                "href": "https://api.dataforsyningen.dk/navngivneveje/2cf0c67e-c66c-4ae3-9e4d-7ab39bda7431",
+                "id": "2cf0c67e-c66c-4ae3-9e4d-7ab39bda7431"
+            },
+            "supplerendebynavn": null,
+            "supplerendebynavn2": null,
+            "postnummer": {
+                "href": "https://api.dataforsyningen.dk/postnumre/8000",
+                "nr": "8000",
+                "navn": "Aarhus C"
+            },
+            "stormodtagerpostnummer": null,
+            "kommune": {
+                "href": "https://api.dataforsyningen.dk/kommuner/0751",
+                "kode": "0751",
+                "navn": "Aarhus"
+            },
+            "ejerlav": {
+                "kode": 2006355,
+                "navn": "Marselisborg, Århus Jorder"
+            },
+            "esrejendomsnr": "0",
+            "matrikelnr": "177",
+            "historik": {
+                "oprettet": "2000-02-05T15:26:20.000",
+                "ændret": "2018-07-04T18:00:00.000",
+                "ikrafttrædelse": "2000-02-05T15:26:20.000",
+                "nedlagt": null
+            },
+            "adgangspunkt": {
+                "id": "0a3f5096-768a-32b8-e044-0003ba298018",
+                "koordinater": [
+                    10.2028027,
+                    56.12782105
+                ],
+                "højde": 37.7,
+                "nøjagtighed": "A",
+                "kilde": 5,
+                "tekniskstandard": "TK",
+                "tekstretning": 263,
+                "ændret": "2012-02-20T23:59:00.000"
+            },
+            "vejpunkt": {
+                "id": "1b84e219-af45-11e7-847e-066cff24d637",
+                "kilde": "Ekstern",
+                "nøjagtighed": "B",
+                "tekniskstandard": "V0",
+                "koordinater": [
+                    10.20248679,
+                    56.12772231
+                ],
+                "ændret": "2018-05-03T14:08:02.125"
+            },
+            "DDKN": {
+                "m100": "100m_62209_5747",
+                "km1": "1km_6220_574",
+                "km10": "10km_622_57"
+            },
+            "sogn": {
+                "href": "https://api.dataforsyningen.dk/sogne/8118",
+                "kode": "8118",
+                "navn": "Sankt Pauls"
+            },
+            "region": {
+                "href": "https://api.dataforsyningen.dk/regioner/1082",
+                "kode": "1082",
+                "navn": "Region Midtjylland"
+            },
+            "landsdel": {
+                "href": "https://api.dataforsyningen.dk/landsdele/DK042",
+                "nuts3": "DK042",
+                "navn": "Østjylland"
+            },
+            "retskreds": {
+                "href": "https://api.dataforsyningen.dk/retskredse/1165",
+                "kode": "1165",
+                "navn": "Retten i Århus"
+            },
+            "politikreds": {
+                "href": "https://api.dataforsyningen.dk/politikredse/1461",
+                "kode": "1461",
+                "navn": "Østjyllands Politi"
+            },
+            "opstillingskreds": {
+                "href": "https://api.dataforsyningen.dk/opstillingskredse/0062",
+                "kode": "0062",
+                "navn": "Aarhus Syd"
+            },
+            "afstemningsområde": {
+                "href": "https://api.dataforsyningen.dk/afstemningsomraader/751/1",
+                "nummer": "1",
+                "navn": "Frederiksbjerghallerne"
+            },
+            "storkreds": {
+                "href": "https://api.dataforsyningen.dk/storkredse/8",
+                "nummer": "8",
+                "navn": "Østjylland"
+            },
+            "valglandsdel": {
+                "href": "https://api.dataforsyningen.dk/valglandsdele/C",
+                "bogstav": "C",
+                "navn": "Midtjylland-Nordjylland"
+            },
+            "zone": "Landzone",
+            "jordstykke": {
+                "href": "https://api.dataforsyningen.dk/jordstykker/2006355/177",
+                "ejerlav": {
+                    "kode": 2006355,
+                    "navn": "Marselisborg, Århus Jorder",
+                    "href": "https://api.dataforsyningen.dk/ejerlav/2006355"
+                },
+                "matrikelnr": "177",
+                "esrejendomsnr": "0"
+            },
+            "bebyggelser": [
+                {
+                    "id": "12337669-a188-6b98-e053-d480220a5a3f",
+                    "kode": 11045,
+                    "type": "by",
+                    "navn": "Aarhus",
+                    "href": "https://api.dataforsyningen.dk/bebyggelser/12337669-a188-6b98-e053-d480220a5a3f"
+                }
+            ],
+            "brofast": true
+        }
+    }
+]

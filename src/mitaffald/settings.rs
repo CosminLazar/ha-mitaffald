@@ -21,6 +21,8 @@ pub struct TraditionalAddress {
     pub street_no: String,
     pub postal_code: String,
     pub city: String,
+
+    pub address_lookup_url: Url,
 }
 
 #[derive(Deserialize, Debug)]

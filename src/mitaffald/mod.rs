@@ -76,7 +76,7 @@ async fn build_remote_url(config: AffaldVarmeConfig) -> Url {
 }
 
 async fn lookup_address(address: TraditionalAddress) -> Result<AddressId, String> {
-    let mut url_builder = Url::parse("https://api.dataforsyningen.dk").unwrap();
+    let mut url_builder = address.address_lookup_url.clone();
     url_builder.set_path("adresser");
 
     url_builder
@@ -140,6 +140,7 @@ mod tests {
     use super::*;
     use crate::mitaffald::settings::{Address, AddressId, TraditionalAddress};
     use fluent_asserter::{prelude::StrAssertions, *};
+    use mockito::Matcher;
 
     #[tokio::test]
     async fn can_extract_data_using_address_id() {
@@ -180,23 +181,33 @@ mod tests {
                 street_no: "100".to_string(),
                 postal_code: "8000".to_string(),
                 city: "Aarhus C".to_string(),
+                address_lookup_url: Url::parse(remote.url().as_str())
+                    .expect("Failed to parse address_lookup_url"),
             }),
-            base_url: Url::parse(remote.url().as_str()).unwrap(),
+            base_url: Url::parse(remote.url().as_str()).expect("Failed to parse base_url"),
         };
 
-        let remote = remote
-            .mock(
-                "GET",
-                "/Adresse/VisAdresseInfo?address-search=Kongevejen%2C+8000+Aarhus+C&number-search=100&address-selected-postnr=8000",
-            )
+        let address_lookup_mock = remote
+            .mock("GET", "/adresser")
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("q".into(), "Kongevejen 100 8000 Aarhus C".into()),
+                Matcher::UrlEncoded("per_side".into(), "2".into()),
+            ]))
             .with_status(200)
-            .with_body_from_file("src/mitaffald/remote_responses/container_information.html")
+            .with_body_from_file("src/mitaffald/remote_responses/address_lookup.json")
+            .create();
+
+        let container_info_mock = remote
+            .mock("GET", "/api/calendar/address/07514448_100_______")
+            .with_status(200)
+            .with_body_from_file("src/mitaffald/remote_responses/container_information.json")
             .create();
 
         let actual = get_containers(config).await;
         let expected = cotainers_from_container_information_file();
 
-        remote.assert();
+        address_lookup_mock.assert();
+        container_info_mock.assert();
         assert_that!(actual.is_ok()).is_true();
         assert_that!(actual.unwrap().as_slice()).is_equal_to(expected.as_slice());
     }
