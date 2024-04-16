@@ -144,7 +144,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_extract_data_using_address_id() {
-        let mut remote = mockito::Server::new();
+        let mut remote = mockito::Server::new_async().await;
         let address_id = "123".to_string();
         let config = AffaldVarmeConfig {
             address: Address::Id(AddressId {
@@ -160,18 +160,19 @@ mod tests {
             )
             .with_status(200)
             .with_body_from_file("src/mitaffald/remote_responses/container_information.json")
-            .create();
+            .create_async()
+            .await;
 
         let actual = get_containers(config).await;
 
-        remote.assert();
+        remote.assert_async().await;
         assert_that!(actual.is_ok()).is_true();
         insta::assert_debug_snapshot!(actual.unwrap());
     }
 
     #[tokio::test]
     async fn can_extract_data_using_traditional_address() {
-        let mut remote = mockito::Server::new();
+        let mut remote = mockito::Server::new_async().await;
         let config = AffaldVarmeConfig {
             address: Address::FullySpecified(TraditionalAddress {
                 street_name: "Kongevejen".to_string(),
@@ -192,25 +193,27 @@ mod tests {
             ]))
             .with_status(200)
             .with_body_from_file("src/mitaffald/remote_responses/address_lookup.json")
-            .create();
+            .create_async()
+            .await;
 
         let container_info_mock = remote
             .mock("GET", "/api/calendar/address/07514448_100_______")
             .with_status(200)
             .with_body_from_file("src/mitaffald/remote_responses/container_information.json")
-            .create();
+            .create_async()
+            .await;
 
         let actual = get_containers(config).await;
 
-        address_lookup_mock.assert();
-        container_info_mock.assert();
+        address_lookup_mock.assert_async().await;
+        container_info_mock.assert_async().await;
         assert_that!(actual.is_ok()).is_true();
         insta::assert_debug_snapshot!(actual.unwrap());
     }
 
     #[tokio::test]
     async fn can_handle_server_error() {
-        let mut remote = mockito::Server::new();
+        let mut remote = mockito::Server::new_async().await;
         let config = AffaldVarmeConfig {
             address: Address::Id(AddressId { id: "123".into() }),
             base_url: Url::parse(remote.url().as_str()).unwrap(),
@@ -219,11 +222,12 @@ mod tests {
         let remote = remote
             .mock("GET", mockito::Matcher::Regex(".*".to_string()))
             .with_status(500)
-            .create();
+            .create_async()
+            .await;
 
         let actual = get_containers(config).await;
 
-        remote.assert();
+        remote.assert_async().await;
         assert_that!(actual.is_err()).is_true();
         assert_that!(actual.unwrap_err()).contains("Unexpected status code");
     }
