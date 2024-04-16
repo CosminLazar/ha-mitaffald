@@ -75,7 +75,7 @@ async fn smoke_test_insta() {
 
     insta::with_settings!({
         filters=>vec![
-            (r#"\\"last_update\\":\s*\\"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}\\""#,
+            (r#"\\"last_update\\":\s*\\"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}\\""#,
             r#"\"last_update\": \"[REDACTED]\""#)
         ]
     }, {
