@@ -80,12 +80,6 @@ async fn smoke_test_insta() {
     }, {
         insta::assert_yaml_snapshot!(actual);
     });
-
-    // insta::with_settings!({sort_maps => true}, {
-    // insta::assert_yaml_snapshot!(actual,{
-    //     "."
-    // });
-    // });
 }
 
 fn actual(messages: Vec<Publish>) -> Vec<MqttMessage> {
