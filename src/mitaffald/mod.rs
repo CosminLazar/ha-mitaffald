@@ -163,13 +163,10 @@ mod tests {
             .create();
 
         let actual = get_containers(config).await;
-        let expected = cotainers_from_container_information_file();
 
         remote.assert();
-        let a = actual.expect("b");
-
-        // assert_that!(actual.is_ok()).is_true();
-        // assert_that!(actual.unwrap().as_slice()).is_equal_to(expected.as_slice());
+        assert_that!(actual.is_ok()).is_true();
+        insta::assert_debug_snapshot!(actual.unwrap());
     }
 
     #[tokio::test]
@@ -204,12 +201,11 @@ mod tests {
             .create();
 
         let actual = get_containers(config).await;
-        let expected = cotainers_from_container_information_file();
 
         address_lookup_mock.assert();
         container_info_mock.assert();
         assert_that!(actual.is_ok()).is_true();
-        assert_that!(actual.unwrap().as_slice()).is_equal_to(expected.as_slice());
+        insta::assert_debug_snapshot!(actual.unwrap());
     }
 
     #[tokio::test]
@@ -243,12 +239,5 @@ mod tests {
 
         assert_that!(actual.is_err()).is_true();
         assert_that!(actual.unwrap_err()).contains("Error connecting");
-    }
-
-    fn cotainers_from_container_information_file() -> [Container; 1] {
-        [Container {
-            name: "TBA".to_owned(),
-            date: chrono::Utc::now(),
-        }]
     }
 }
