@@ -29,15 +29,26 @@ pub struct HASensor {
 
 impl HASensor {
     pub fn new(container: &Container) -> Self {
+        let container_id: String = Self::generate_sensor_id(container);
+
         Self {
-            container_id: container.id.clone(),
             configure_topic: format!(
                 "homeassistant/sensor/ha_affaldvarme_{}/config",
-                container.id
+                container_id
             ),
-            state_topic: format!("garbage_bin/{}/status", container.id),
+            state_topic: format!("garbage_bin/{}/status", container_id),
             is_initialized: false,
+            container_id,
         }
+    }
+
+    fn generate_sensor_id(container: &Container) -> String {
+        container
+            .name
+            .clone()
+            .chars()
+            .map(|c| if c.is_alphanumeric() { c } else { '_' })
+            .collect()
     }
 
     pub async fn report(
@@ -86,7 +97,7 @@ impl HASensor {
             sensor_name = container.name,
             state_topic = self.state_topic,
             availability_topic = HA_AVAILABILITY_TOPIC,
-            id = container.id,
+            id = self.container_id,
         );
 
         client
@@ -120,19 +131,13 @@ impl HASensor {
     ) -> Result<(), rumqttc::ClientError> {
         let payload = format!(
             r#"
-            {{
-            "id": "{id}",
-            "size": "{size}",
-            "frequency": "{frequency}",
+            {{            
             "name": "{sensor_name}",
             "next_empty": "{next_empty}",
             "last_update": "{last_update}"
             }}"#,
-            id = container.id,
-            size = container.size,
-            frequency = container.frequency,
             sensor_name = container.name,
-            next_empty = container.get_next_empty().format("%Y-%m-%d"),
+            next_empty = container.date.format("%Y-%m-%d"),
             last_update = chrono::Local::now().to_rfc3339(),
         );
 
