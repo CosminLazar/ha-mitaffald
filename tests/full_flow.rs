@@ -24,7 +24,7 @@ async fn smoke_test() {
     let mqtt_server = docker.run(HiveMQContainer::default());
     let mqtt_server_port = mqtt_server.get_host_port_ipv4(1883);
 
-    let mut mit_affald_server = mockito::Server::new();
+    let mut mit_affald_server = mockito::Server::new_async().await;
     let mit_affald_server_url = Url::parse(&mit_affald_server.url()).unwrap();
     let address_id = "123".to_string();
     let mit_affald_server = mit_affald_server
@@ -34,7 +34,8 @@ async fn smoke_test() {
         )
         .with_status(200)
         .with_body_from_file("src/mitaffald/remote_responses/container_information.json")
-        .create();
+        .create_async()
+        .await;
 
     let settings = Settings {
         affaldvarme: AffaldVarmeConfig {
@@ -70,7 +71,7 @@ async fn smoke_test() {
         collect_result.unwrap_err()
     );
 
-    mit_affald_server.assert();
+    mit_affald_server.assert_async().await;
 
     let actual = actual(collect_result.unwrap());
     let expected = expectations();
