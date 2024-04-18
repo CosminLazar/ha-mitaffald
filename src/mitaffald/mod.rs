@@ -38,6 +38,7 @@ struct Respon(Vec<Response>);
 
 #[derive(Deserialize)]
 struct Response {
+    #[allow(dead_code)]
     #[serde(rename = "standId")]
     stand_id: String,
 
