@@ -10,9 +10,8 @@ pub mod settings;
 pub async fn sync_data(settings: Settings) -> Result<(), String> {
     let mut device = homeassistant::HADevice::default();
     let (mut client, mut connection) = AsyncClient::new(settings.mqtt.into(), 200);
-    let mut has_errors = false;
 
-    for container in get_containers(settings.affaldvarme)
+    let containers_to_report = get_containers(settings.affaldvarme)
         .await?
         .into_iter()
         .fold(
@@ -32,12 +31,17 @@ pub async fn sync_data(settings: Settings) -> Result<(), String> {
                 accumulator
             },
         )
-        .into_values()
-    {
-        let report_result = device.report(container, &mut client).await;
+        .into_values();
 
-        has_errors = has_errors || report_result.is_err();
-    }
+    let has_errors = {
+        let mut has_errors = false;
+        for container in containers_to_report {
+            let report_result = device.report(container, &mut client).await;
+
+            has_errors = has_errors || report_result.is_err();
+        }
+        has_errors
+    };
 
     //calling disconnect() causes an error in the connection iterator
     if let Err(x) = client.disconnect().await {
