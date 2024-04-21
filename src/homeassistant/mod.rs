@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::mitaffald::Container;
 use crate::settings::MQTTConfig;
 use rumqttc::{AsyncClient, LastWill, MqttOptions};
+use serde_json::json;
 
 const HA_AVAILABILITY_TOPIC: &str = "garbage_bin/availability";
 
@@ -123,33 +124,27 @@ impl HASensor {
             return Ok(());
         }
 
-        let payload = format!(
-            r#"{{
-              "object_id": "ha_affaldvarme_{id}",
-              "unique_id": "ha_affaldvarme_{id}",
-              "name": "{sensor_name}",
-              "state_topic": "{state_topic}",
-              "json_attributes_topic": "{state_topic}",
-              "value_template": "{{{{ (strptime(value_json.next_empty, '%Y-%m-%d').date() - now().date()).days }}}}",
-              "availability_topic": "{availability_topic}",
-              "payload_available": "online",
-              "payload_not_available": "offline",
-              "unit_of_measurement": "days",
-              "device": {{
-                "identifiers": [
-                  "ha_affaldvarme"
-                ],
-                "name": "Affaldvarme integration",
-                "sw_version": "1.0",
-                "model": "Standard",
-                "manufacturer": "Your Garbage Bin Manufacturer"
-              }},
-              "icon": "mdi:recycle"
-            }}"#,
-            sensor_name = container.name,
-            state_topic = self.state_topic,
-            availability_topic = HA_AVAILABILITY_TOPIC,
-            id = self.container_id,
+        let payload = json!(
+            {
+                "object_id": format!("ha_affaldvarme_{}", self.container_id),
+                "unique_id": format!("ha_affaldvarme_{}", self.container_id),
+                "name": container.name,
+                "state_topic": self.state_topic,
+                "json_attributes_topic": self.state_topic,
+                "value_template": "{{ (strptime(value_json.next_empty, '%Y-%m-%d').date() - now().date()).days }}",
+                "availability_topic": HA_AVAILABILITY_TOPIC,
+                "payload_available": "online",
+                "payload_not_available": "offline",
+                "unit_of_measurement": "days",
+                "device": {
+                    "identifiers": ["ha_affaldvarme"],
+                    "name": "Affaldvarme integration",
+                    "sw_version": "1.0",
+                    "model": "Standard",
+                    "manufacturer": "Your Garbage Bin Manufacturer"
+                },
+                "icon": "mdi:recycle"
+            }
         );
 
         let publish_result = client
@@ -157,7 +152,7 @@ impl HASensor {
                 &self.configure_topic,
                 rumqttc::QoS::AtLeastOnce,
                 false,
-                payload,
+                serde_json::to_string(&payload).expect("Failed to serialize"),
             )
             .await;
 
@@ -173,20 +168,21 @@ impl HASensor {
         container: &Container,
         client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
-        let payload = format!(
-            r#"
-            {{            
-            "name": "{sensor_name}",
-            "next_empty": "{next_empty}",
-            "last_update": "{last_update}"
-            }}"#,
-            sensor_name = container.name,
-            next_empty = container.date.format("%Y-%m-%d"),
-            last_update = chrono::Local::now().to_rfc3339(),
+        let payload = json!(
+            {
+                "name": container.name,
+                "next_empty": container.date.format("%Y-%m-%d").to_string(),
+                "last_update": chrono::Local::now().to_rfc3339()
+            }
         );
 
         client
-            .publish(&self.state_topic, rumqttc::QoS::AtLeastOnce, false, payload)
+            .publish(
+                &self.state_topic,
+                rumqttc::QoS::AtLeastOnce,
+                false,
+                serde_json::to_string(&payload).expect("Failed to serialize"),
+            )
             .await
     }
 }
