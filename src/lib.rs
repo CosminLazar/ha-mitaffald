@@ -8,8 +8,10 @@ pub mod mitaffald;
 pub mod settings;
 
 pub async fn sync_data(settings: Settings) -> Result<(), String> {
-    let mut device = homeassistant::HADevice::default();
     let (mut client, mut connection) = AsyncClient::new(settings.mqtt.into(), 200);
+    let device = homeassistant::HADevice::default();
+
+    let mut device = device.initialize(&mut client).await?;
 
     let containers_to_report = get_containers(settings.affaldvarme)
         .await?
