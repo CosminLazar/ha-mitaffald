@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::mitaffald::Container;
 use crate::settings::MQTTConfig;
 use rumqttc::{AsyncClient, LastWill, MqttOptions};
@@ -20,8 +22,48 @@ impl From<MQTTConfig> for MqttOptions {
     }
 }
 
-pub struct HASensor {
-    pub container_id: String,
+#[derive(Default)]
+pub struct HADevice {
+    sensors: HashMap<String, HASensor>,
+    is_initialized: bool,
+}
+
+impl HADevice {
+    pub async fn report(
+        &mut self,
+        container: Container,
+        client: &mut AsyncClient,
+    ) -> Result<(), rumqttc::ClientError> {
+        if !self.is_initialized {
+            self.register_device_availability(client).await?;
+            self.is_initialized = true;
+        }
+
+        let sensor_id = HASensor::generate_sensor_id(&container);
+        self.sensors
+            .entry(sensor_id.clone())
+            .or_insert_with(|| HASensor::new(&container))
+            .report(container, client)
+            .await
+    }
+
+    async fn register_device_availability(
+        &self,
+        client: &mut AsyncClient,
+    ) -> Result<(), rumqttc::ClientError> {
+        client
+            .publish(
+                HA_AVAILABILITY_TOPIC,
+                rumqttc::QoS::AtLeastOnce,
+                true,
+                "online",
+            )
+            .await
+    }
+}
+
+struct HASensor {
+    container_id: String,
     configure_topic: String,
     state_topic: String,
     is_initialized: bool,
@@ -58,7 +100,6 @@ impl HASensor {
     ) -> Result<(), rumqttc::ClientError> {
         if !self.is_initialized {
             self.register_sensor(&container, client).await?;
-            self.register_sensor_availability(client).await?;
             self.is_initialized = true;
         }
 
@@ -91,7 +132,7 @@ impl HASensor {
                 "sw_version": "1.0",
                 "model": "Standard",
                 "manufacturer": "Your Garbage Bin Manufacturer"
-              }},              
+              }},
               "icon": "mdi:recycle"
             }}"#,
             sensor_name = container.name,
@@ -106,20 +147,6 @@ impl HASensor {
                 rumqttc::QoS::AtLeastOnce,
                 false,
                 payload,
-            )
-            .await
-    }
-
-    async fn register_sensor_availability(
-        &self,
-        client: &mut AsyncClient,
-    ) -> Result<(), rumqttc::ClientError> {
-        client
-            .publish(
-                HA_AVAILABILITY_TOPIC,
-                rumqttc::QoS::AtLeastOnce,
-                true,
-                "online",
             )
             .await
     }

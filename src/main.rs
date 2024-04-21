@@ -1,14 +1,11 @@
-use ha_mitaffald::homeassistant::HASensor;
 use ha_mitaffald::settings::Settings;
 use ha_mitaffald::sync_data;
-use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() {
     let settings = Settings::new().expect("Failed to read settings");
-    let mut sensor_map: HashMap<String, HASensor> = HashMap::new();
 
-    let report = sync_data(settings, &mut sensor_map).await;
+    let report = sync_data(settings).await;
 
     if let Err(x) = report {
         eprintln!(
@@ -16,4 +13,6 @@ async fn main() {
             x
         );
     }
+
+    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
 }

@@ -1,18 +1,14 @@
-use std::collections::HashMap;
-
-use homeassistant::HASensor;
 use mitaffald::{get_containers, Container};
 use rumqttc::AsyncClient;
 use settings::Settings;
+use std::collections::{hash_map::Entry, HashMap};
 
 pub mod homeassistant;
 pub mod mitaffald;
 pub mod settings;
 
-pub async fn sync_data(
-    settings: Settings,
-    sensor_map: &mut HashMap<String, HASensor>,
-) -> Result<(), String> {
+pub async fn sync_data(settings: Settings) -> Result<(), String> {
+    let mut device = homeassistant::HADevice::default();
     let (mut client, mut connection) = AsyncClient::new(settings.mqtt.into(), 200);
     let mut has_errors = false;
 
@@ -23,12 +19,12 @@ pub async fn sync_data(
             HashMap::<String, Container>::new(),
             |mut accumulator, item| {
                 match accumulator.entry(item.name.clone()) {
-                    std::collections::hash_map::Entry::Occupied(mut existing) => {
+                    Entry::Occupied(mut existing) => {
                         if existing.get().date > item.date {
                             existing.insert(item);
                         }
                     }
-                    std::collections::hash_map::Entry::Vacant(v) => {
+                    Entry::Vacant(v) => {
                         v.insert(item);
                     }
                 }
@@ -38,11 +34,7 @@ pub async fn sync_data(
         )
         .into_values()
     {
-        let report_result = sensor_map
-            .entry(container.name.clone())
-            .or_insert_with(|| HASensor::new(&container))
-            .report(container, &mut client)
-            .await;
+        let report_result = device.report(container, &mut client).await;
 
         has_errors = has_errors || report_result.is_err();
     }

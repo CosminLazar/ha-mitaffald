@@ -8,20 +8,18 @@ use url::Url;
 use self::settings::{AddressId, TraditionalAddress};
 
 pub async fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, String> {
-    let response = fetch_remote_response(config)
-        .await
-        .map_err(|err| format!("Error connecting: {:?}", err))?;
+    let response = fetch_remote_response(config).await?;
 
     if !response.status().is_success() {
         return Err(format!("Unexpected status code: {:?}", response.status()));
     }
 
     response
-        .json::<Respon>()
+        .json::<Response>()
         .await
         .map_err(|err| format!("Error reading response content: {:?}", err))
-        .and_then(|respon| {
-            respon
+        .and_then(|response| {
+            response
                 .0
                 .into_iter()
                 .next()
@@ -34,10 +32,10 @@ pub async fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>,
 }
 
 #[derive(Deserialize)]
-struct Respon(Vec<Response>);
+struct Response(Vec<StandCollectionPlan>);
 
 #[derive(Deserialize)]
-struct Response {
+struct StandCollectionPlan {
     #[allow(dead_code)]
     #[serde(rename = "standId")]
     stand_id: String,
@@ -55,25 +53,25 @@ struct PlannedLoad {
     fractions: Vec<String>,
 }
 
-async fn fetch_remote_response(
-    config: AffaldVarmeConfig,
-) -> Result<reqwest::Response, reqwest::Error> {
-    let remote_url = build_remote_url(config).await;
+async fn fetch_remote_response(config: AffaldVarmeConfig) -> Result<reqwest::Response, String> {
+    let remote_url = build_remote_url(config).await?;
 
-    reqwest::get(remote_url).await
+    reqwest::get(remote_url)
+        .await
+        .map_err(|err| format!("Error connecting: {:?}", err))
 }
 
-async fn build_remote_url(config: AffaldVarmeConfig) -> Url {
+async fn build_remote_url(config: AffaldVarmeConfig) -> Result<Url, String> {
     let mut url_builder = config.base_url.clone();
 
     let address_id = match config.address {
         Address::Id(x) => x.id.clone(),
-        Address::FullySpecified(x) => lookup_address(x).await.unwrap().id.clone(),
+        Address::FullySpecified(x) => lookup_address(x).await?.id.clone(),
     };
 
     url_builder.set_path(format!("api/calendar/address/{}", dbg!(address_id)).as_str());
 
-    url_builder
+    Ok(url_builder)
 }
 
 async fn lookup_address(address: TraditionalAddress) -> Result<AddressId, String> {
@@ -122,8 +120,8 @@ impl Container {
     }
 }
 
-impl From<Response> for Vec<Container> {
-    fn from(response: Response) -> Self {
+impl From<StandCollectionPlan> for Vec<Container> {
+    fn from(response: StandCollectionPlan) -> Self {
         response
             .planned_loads
             .into_iter()

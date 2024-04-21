@@ -3,7 +3,6 @@ mod mqtt;
 
 use crate::mqtt::CollectingClient;
 use ha_mitaffald::{
-    homeassistant::HASensor,
     mitaffald::settings::{Address, AddressId, AffaldVarmeConfig},
     settings::Settings,
     sync_data,
@@ -11,7 +10,6 @@ use ha_mitaffald::{
 use hivemq::HiveMQContainer;
 use rumqttc::Publish;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::time::Duration;
 use testcontainers::clients;
 use url::Url;
@@ -52,8 +50,7 @@ async fn smoke_test_insta() {
     let mut collecting_client = CollectingClient::new();
     collecting_client.start(&settings.mqtt);
 
-    let mut sensor_map: HashMap<String, HASensor> = HashMap::new();
-    let sync_result = sync_data(settings, &mut sensor_map).await;
+    let sync_result = sync_data(settings).await;
 
     assert!(
         sync_result.is_ok(),
