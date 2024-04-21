@@ -34,31 +34,42 @@ impl HADevice {
         container: Container,
         client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
-        if !self.is_initialized {
-            self.register_device_availability(client).await?;
-            self.is_initialized = true;
-        }
-
         let sensor_id = HASensor::generate_sensor_id(&container);
-        self.sensors
+        let report_result = self
+            .sensors
             .entry(sensor_id.clone())
             .or_insert_with(|| HASensor::new(&container))
             .report(container, client)
-            .await
+            .await;
+
+        if report_result.is_ok() {
+            self.register_device_availability(client).await?;
+        }
+        report_result
     }
 
     async fn register_device_availability(
-        &self,
+        &mut self,
         client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
-        client
+        if self.is_initialized {
+            return Ok(());
+        }
+
+        let publish_result = client
             .publish(
                 HA_AVAILABILITY_TOPIC,
                 rumqttc::QoS::AtLeastOnce,
                 true,
                 "online",
             )
-            .await
+            .await;
+
+        if publish_result.is_ok() {
+            self.is_initialized = true;
+        }
+
+        publish_result
     }
 }
 
@@ -98,13 +109,9 @@ impl HASensor {
         container: Container,
         client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
-        if !self.is_initialized {
-            self.register_sensor(&container, client).await?;
-            self.is_initialized = true;
-        }
+        self.register_sensor(&container, client).await?;
 
-        self.register_sensor_value(&container, client).await?;
-        Ok(())
+        self.register_sensor_value(&container, client).await
     }
 
     async fn register_sensor(
@@ -112,6 +119,10 @@ impl HASensor {
         container: &Container,
         client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
+        if self.is_initialized {
+            return Ok(());
+        }
+
         let payload = format!(
             r#"{{
               "object_id": "ha_affaldvarme_{id}",
@@ -141,14 +152,20 @@ impl HASensor {
             id = self.container_id,
         );
 
-        client
+        let publish_result = client
             .publish(
                 &self.configure_topic,
                 rumqttc::QoS::AtLeastOnce,
                 false,
                 payload,
             )
-            .await
+            .await;
+
+        if publish_result.is_ok() {
+            self.is_initialized = true;
+        }
+
+        publish_result
     }
 
     async fn register_sensor_value(
