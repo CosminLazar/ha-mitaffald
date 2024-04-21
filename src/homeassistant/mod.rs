@@ -6,6 +6,8 @@ use rumqttc::{AsyncClient, LastWill, MqttOptions};
 use serde_json::json;
 
 const HA_AVAILABILITY_TOPIC: &str = "garbage_bin/availability";
+const HA_PAYLOAD_AVAILABLE: &str = "online";
+const HA_PAYLOAD_NOT_AVAILABLE: &str = "offline";
 
 impl From<MQTTConfig> for MqttOptions {
     fn from(val: MQTTConfig) -> Self {
@@ -14,7 +16,7 @@ impl From<MQTTConfig> for MqttOptions {
             .set_credentials(val.username, val.password)
             .set_last_will(LastWill::new(
                 HA_AVAILABILITY_TOPIC,
-                "offline",
+                HA_PAYLOAD_NOT_AVAILABLE,
                 rumqttc::QoS::AtLeastOnce,
                 true,
             ));
@@ -23,54 +25,104 @@ impl From<MQTTConfig> for MqttOptions {
     }
 }
 
-#[derive(Default)]
-pub struct HADevice {
+pub struct CreatedState;
+pub struct InitializedState {
     sensors: HashMap<String, HASensor>,
-    is_initialized: bool,
 }
 
-impl HADevice {
-    pub async fn report(
+pub struct HADevice<T> {
+    state: T,
+}
+
+impl Default for HADevice<CreatedState> {
+    fn default() -> Self {
+        HADevice {
+            state: CreatedState,
+        }
+    }
+}
+
+impl HADevice<CreatedState> {
+    pub async fn initialize(
+        mut self,
+        client: &mut AsyncClient,
+    ) -> Result<HADevice<InitializedState>, String> {
+        self.register_device(client)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        self.register_device_availability(client)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(HADevice {
+            state: InitializedState {
+                sensors: HashMap::new(),
+            },
+        })
+    }
+
+    async fn register_device(
         &mut self,
-        container: Container,
         client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
-        let sensor_id = HASensor::generate_sensor_id(&container);
-        let report_result = self
-            .sensors
-            .entry(sensor_id.clone())
-            .or_insert_with(|| HASensor::new(&container))
-            .report(container, client)
-            .await;
+        let payload = json!(
+            {
+                "unique_id": "ha_affaldvarme_device",
+                "name": "Affaldvarme Device",
+                "state_topic": HA_AVAILABILITY_TOPIC,
+                "availability_topic": HA_AVAILABILITY_TOPIC,
+                "payload_available": HA_PAYLOAD_AVAILABLE,
+                "payload_not_available": HA_PAYLOAD_NOT_AVAILABLE,
+                "device": {
+                    "identifiers": ["ha_affaldvarme"],
+                    "name": "Affaldvarme integration",
+                    "sw_version": "1.0",
+                    "model": "Standard",
+                    "manufacturer": "Your humble rust developer"
+                }
+            }
+        );
 
-        if report_result.is_ok() {
-            self.register_device_availability(client).await?;
-        }
-        report_result
+        client
+            .publish(
+                "homeassistant/sensor/ha_affaldvarme_device/config",
+                rumqttc::QoS::AtLeastOnce,
+                true,
+                serde_json::to_string(&payload).expect("Failed to serialize"),
+            )
+            .await
     }
 
     async fn register_device_availability(
         &mut self,
         client: &mut AsyncClient,
     ) -> Result<(), rumqttc::ClientError> {
-        if self.is_initialized {
-            return Ok(());
-        }
-
-        let publish_result = client
+        client
             .publish(
                 HA_AVAILABILITY_TOPIC,
                 rumqttc::QoS::AtLeastOnce,
                 true,
-                "online",
+                HA_PAYLOAD_AVAILABLE,
             )
-            .await;
+            .await
+    }
+}
 
-        if publish_result.is_ok() {
-            self.is_initialized = true;
-        }
-
-        publish_result
+impl HADevice<InitializedState> {
+    pub async fn report(
+        &mut self,
+        container: Container,
+        client: &mut AsyncClient,
+    ) -> Result<(), String> {
+        let sensor_id = HASensor::generate_sensor_id(&container);
+        self.state
+            .sensors
+            .entry(sensor_id.clone())
+            .or_insert_with(|| HASensor::new(&container))
+            .report(container, client)
+            .await
+            .map_err(|e| e.to_string())
     }
 }
 
@@ -105,7 +157,7 @@ impl HASensor {
             .collect()
     }
 
-    pub async fn report(
+    async fn report(
         &mut self,
         container: Container,
         client: &mut AsyncClient,
@@ -133,15 +185,11 @@ impl HASensor {
                 "json_attributes_topic": self.state_topic,
                 "value_template": "{{ (strptime(value_json.next_empty, '%Y-%m-%d').date() - now().date()).days }}",
                 "availability_topic": HA_AVAILABILITY_TOPIC,
-                "payload_available": "online",
-                "payload_not_available": "offline",
+                "payload_available": HA_PAYLOAD_AVAILABLE,
+                "payload_not_available": HA_PAYLOAD_NOT_AVAILABLE,
                 "unit_of_measurement": "days",
                 "device": {
-                    "identifiers": ["ha_affaldvarme"],
-                    "name": "Affaldvarme integration",
-                    "sw_version": "1.0",
-                    "model": "Standard",
-                    "manufacturer": "Your Garbage Bin Manufacturer"
+                    "identifiers": ["ha_affaldvarme"]
                 },
                 "icon": "mdi:recycle"
             }

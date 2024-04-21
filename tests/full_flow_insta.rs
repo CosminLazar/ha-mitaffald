@@ -58,7 +58,7 @@ async fn smoke_test_insta() {
         sync_result.err()
     );
 
-    let collect_result = collecting_client.wait_for_messages(19, Duration::from_secs(60));
+    let collect_result = collecting_client.wait_for_messages(20, Duration::from_secs(60));
 
     assert!(
         collect_result.is_ok(),
