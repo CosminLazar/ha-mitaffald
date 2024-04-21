@@ -32,7 +32,7 @@ impl CollectingClient {
         let (tx, rx) = std::sync::mpsc::channel::<()>();
 
         let handle = std::thread::spawn(move || {
-            let (mut client, mut connection) = Client::new(config.into(), 100);
+            let (client, mut connection) = Client::new(config.into(), 100);
             client.subscribe("#", QoS::AtLeastOnce).unwrap();
 
             loop {

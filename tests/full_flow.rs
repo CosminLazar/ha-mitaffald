@@ -5,7 +5,6 @@ use crate::mqtt::CollectingClient;
 use assert_json_diff::assert_json_include;
 use fluent_asserter::{assert_that, create_asserter};
 use ha_mitaffald::{
-    homeassistant::HASensor,
     mitaffald::settings::{Address, AddressId, AffaldVarmeConfig},
     settings::Settings,
     sync_data,
@@ -54,8 +53,7 @@ async fn smoke_test() {
     let mut collecting_client = CollectingClient::new();
     collecting_client.start(&settings.mqtt);
 
-    let mut sensor_map: HashMap<String, HASensor> = HashMap::new();
-    let sync_result = sync_data(settings, &mut sensor_map).await;
+    let sync_result = sync_data(settings).await;
 
     assert!(
         sync_result.is_ok(),
