@@ -11,7 +11,7 @@ base_url = "https://portal-api.kredslob.dk"
 
 # You can specify either the Id of the address or fully qualify the address
 # [affaldvarme.address]
-# id = "bc334dbe-250e-4cf1-af89-f3e940867845"
+# id = "07514448_100_______"
 
 #[affaldvarme.address]
 # street_name = "Kongevejen"
