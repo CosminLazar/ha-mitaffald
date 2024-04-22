@@ -7,16 +7,6 @@ on:
 name: Build
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Run cargo check
-        run: cargo check
-
   test:
     name: Test Suite
     runs-on: ubuntu-latest
