@@ -34,7 +34,7 @@ jobs:
           path: target/nextest/ci/*.xml
           reporter: java-junit
           max-annotations: 50
-          name: Unit Tests
+          name: Test Suite Summary
   lints:
     name: Lints
     runs-on: ubuntu-latest
