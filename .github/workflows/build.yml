@@ -64,12 +64,3 @@ jobs:
         with:          
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
-# this is needed by zgosalvez/github-actions-report-lcov
-      - name: Setup LCOV
-        uses: hrishikesh-kadam/setup-lcov@v1
-      - name: Report code coverage
-        uses: zgosalvez/github-actions-report-lcov@v4
-        with:
-          coverage-files: lcov.info
-          artifact-name: code-coverage-report
-          update-comment: true
