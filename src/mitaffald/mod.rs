@@ -155,7 +155,7 @@ mod tests {
         let remote = remote
             .mock(
                 "GET",
-                format!("/api/calendar/address/{}", address_id).as_str(),
+                format!("/api/calendar/address2/{}", address_id).as_str(),
             )
             .with_status(200)
             .with_body_from_file("src/mitaffald/remote_responses/container_information.json")
