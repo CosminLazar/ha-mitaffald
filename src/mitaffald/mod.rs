@@ -8,7 +8,7 @@ use url::Url;
 use self::settings::{AddressId, TraditionalAddress};
 
 pub async fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>, String> {
-    let response = fetch_remote_response(config).await?;
+    let response = fetch_collection_plan(config).await?;
 
     if !response.status().is_success() {
         return Err(format!("Unexpected status code: {:?}", response.status()));
@@ -53,7 +53,7 @@ struct PlannedLoad {
     fractions: Vec<String>,
 }
 
-async fn fetch_remote_response(config: AffaldVarmeConfig) -> Result<reqwest::Response, String> {
+async fn fetch_collection_plan(config: AffaldVarmeConfig) -> Result<reqwest::Response, String> {
     let remote_url = build_remote_url(config).await?;
 
     reqwest::get(remote_url)
@@ -105,7 +105,9 @@ async fn lookup_address(address: TraditionalAddress) -> Result<AddressId, String
                 .and_then(|x| x.as_str())
                 .map(|x| AddressId { id: x.to_owned() })
         })
-        .ok_or_else(|| "Address not found".to_string())
+        .ok_or_else(|| {
+            "Address not found or multiple addresses matched the search criteria".to_string()
+        })
 }
 
 #[derive(Debug, PartialEq)]

@@ -47,8 +47,8 @@ async fn smoke_test_insta() {
         },
     };
 
-    let mut collecting_client = CollectingClient::new();
-    collecting_client.start(&settings.mqtt);
+    let mut home_assistant = CollectingClient::new();
+    home_assistant.start(&settings.mqtt);
 
     let sync_result = sync_data(settings).await;
 
@@ -58,17 +58,17 @@ async fn smoke_test_insta() {
         sync_result.err()
     );
 
-    let collect_result = collecting_client.wait_for_messages(20, Duration::from_secs(60));
+    let ha_messages_result = home_assistant.wait_for_messages(20, Duration::from_secs(60));
 
     assert!(
-        collect_result.is_ok(),
+        ha_messages_result.is_ok(),
         "Error waiting for messages: {}",
-        collect_result.unwrap_err()
+        ha_messages_result.unwrap_err()
     );
 
     mit_affald_server.assert_async().await;
 
-    let actual = actual(collect_result.unwrap());
+    let actual = actual(ha_messages_result.unwrap());
 
     insta::with_settings!({
         filters=>vec![
