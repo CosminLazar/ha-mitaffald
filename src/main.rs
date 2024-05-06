@@ -3,16 +3,26 @@ use ha_mitaffald::sync_data;
 
 #[tokio::main]
 async fn main() {
-    let settings = Settings::new().expect("Failed to read settings");
+    loop {
+        println!("Starting data synchronization");
 
-    let report = sync_data(settings).await;
+        let settings = Settings::new().expect("Failed to read settings");
+        let report_interval = tokio::time::Duration::from_secs(settings.reporting_interval_secs);
+        let report = sync_data(settings).await;
 
-    if let Err(x) = report {
-        eprintln!(
-            "Failure while reporting data (some entities may have been updated): {}",
-            x
+        match report {
+            Ok(_) => println!("Data synchronization completed"),
+            Err(x) => eprintln!(
+                "Data synchronization failed (some entities may have been updated), error: {}",
+                x
+            ),
+        }
+
+        println!(
+            "Next synchronization will take place at: {}",
+            chrono::Local::now() + report_interval
         );
-    }
 
-    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+        tokio::time::sleep(report_interval).await;
+    }
 }
