@@ -17,3 +17,5 @@ Cargo.lock
 config/secrets.toml
 
 .idea/
+
+.DS_Store

@@ -6,3 +6,4 @@ Dockerfile
 /.git 
 .gitignore 
 /config/secrets.toml
+.DS_Store
