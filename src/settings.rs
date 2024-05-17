@@ -7,7 +7,6 @@ use serde::Deserialize;
 pub struct Settings {
     pub mqtt: MQTTConfig,
     pub affaldvarme: AffaldVarmeConfig,
-    pub reporting_interval_secs: u64,
 }
 
 impl Settings {
