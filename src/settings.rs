@@ -14,7 +14,7 @@ impl Settings {
         let settings = Config::builder()
             .add_source(File::with_name("config/default.toml"))
             .add_source(File::with_name("config/secrets.toml").required(false))
-            .add_source(Environment::default())
+            .add_source(Environment::default().separator("_"))
             .build()?;
 
         settings.try_deserialize()
