@@ -46,6 +46,7 @@ async fn smoke_test_insta() {
         .await;
 
     let settings = Settings {
+        update_interval_minutes: 60,
         affaldvarme: AffaldVarmeConfig {
             address: Address::Id(AddressId { id: address_id }),
             base_url: mit_affald_server_url,
