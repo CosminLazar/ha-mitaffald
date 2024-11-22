@@ -1,4 +1,3 @@
-mod hivemq;
 mod mqtt;
 
 use crate::mqtt::CollectingClient;
@@ -7,18 +6,31 @@ use ha_mitaffald::{
     settings::Settings,
     sync_data,
 };
-use hivemq::HiveMQContainer;
 use rumqttc::Publish;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use testcontainers::clients;
+use testcontainers::{
+    core::{ContainerPort, WaitFor},
+    runners::AsyncRunner,
+    GenericImage, ImageExt,
+};
 use url::Url;
 
 #[tokio::test]
 async fn smoke_test_insta() {
-    let docker = clients::Cli::default();
-    let mqtt_server = docker.run(HiveMQContainer::default());
-    let mqtt_server_port = mqtt_server.get_host_port_ipv4(1883);
+    // GenericImage::new(name, tag).with_network(network)
+    let mqtt_server = GenericImage::new("hivemq/hivemq-ce", "latest")
+        .with_exposed_port(ContainerPort::Tcp(1883))
+        .with_wait_for(WaitFor::message_on_stdout("Started HiveMQ in"))
+        .with_network("bridge")
+        .start()
+        .await
+        .expect("Failed to start container, is Docker running?");
+
+    let mqtt_server_port = mqtt_server
+        .get_host_port_ipv4(1883)
+        .await
+        .expect("Failed to get port binding");
 
     let mut mit_affald_server = mockito::Server::new_async().await;
     let mit_affald_server_url = Url::parse(&mit_affald_server.url()).unwrap();
