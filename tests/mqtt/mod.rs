@@ -6,6 +6,7 @@ use std::{
 };
 
 use rumqttc::{Client, Event, Packet, Publish, QoS};
+use tracing::info;
 
 pub struct CollectingClient {
     received_messages: std::sync::Arc<Mutex<Vec<Publish>>>,
@@ -37,7 +38,7 @@ impl CollectingClient {
 
             loop {
                 let message = connection.recv_timeout(Duration::from_secs(1));
-                println!("Received message: {:?}", &message);
+                info!("Received message: {:?}", &message);
                 match message {
                     Ok(Ok(Event::Incoming(Packet::SubAck(_)))) => {
                         tx.send(()).expect("Cannot report ready to main thread")
@@ -49,7 +50,7 @@ impl CollectingClient {
                 }
 
                 if stopping_flag.load(std::sync::atomic::Ordering::Relaxed) {
-                    println!("Thread is terminating");
+                    info!("Thread is terminating");
                     break;
                 }
             }
@@ -83,7 +84,7 @@ impl CollectingClient {
             std::thread::sleep(std::time::Duration::from_millis(500));
         }
 
-        println!("Joining worker thread...");
+        info!("Joining worker thread...");
         if let Some(handle) = self.join_handle {
             handle.join().unwrap();
         }

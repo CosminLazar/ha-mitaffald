@@ -3,6 +3,7 @@ pub mod settings;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use settings::{Address, AffaldVarmeConfig};
+use tracing::info;
 use url::Url;
 
 use self::settings::{AddressId, TraditionalAddress};
@@ -25,7 +26,7 @@ pub async fn get_containers(config: AffaldVarmeConfig) -> Result<Vec<Container>,
                 .next()
                 .ok_or_else(|| "No data found".to_string())
                 .map(|response| {
-                    println!("Received information for stand: {}", response.stand_name);
+                    info!("Received information for stand: {}", response.stand_name);
                     response.into()
                 })
         })
