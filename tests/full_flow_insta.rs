@@ -22,7 +22,7 @@ async fn smoke_test_insta() {
     let mqtt_server = GenericImage::new("hivemq/hivemq-ce", "latest")
         .with_exposed_port(ContainerPort::Tcp(1883))
         .with_wait_for(WaitFor::message_on_stdout("Started HiveMQ in"))
-        .with_network("bridge")
+        //.with_network("bridge")
         .start()
         .await
         .expect("Failed to start container, is Docker running?");
