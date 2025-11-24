@@ -9,20 +9,13 @@ use ha_mitaffald::{
 use rumqttc::Publish;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use testcontainers::{
-    core::{ContainerPort, WaitFor},
-    runners::AsyncRunner,
-    GenericImage, ImageExt,
-};
+use testcontainers::{core::WaitFor, runners::AsyncRunner, GenericImage};
 use url::Url;
 
 #[tokio::test]
 async fn smoke_test_insta() {
-    // GenericImage::new(name, tag).with_network(network)
     let mqtt_server = GenericImage::new("hivemq/hivemq-ce", "latest")
-        .with_exposed_port(ContainerPort::Tcp(1883))
         .with_wait_for(WaitFor::message_on_stdout("Started HiveMQ in"))
-        .with_network("bridge")
         .start()
         .await
         .expect("Failed to start container, is Docker running?");
