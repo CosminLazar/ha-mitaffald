@@ -20,7 +20,7 @@ use url::Url;
 async fn smoke_test_insta() {
     // GenericImage::new(name, tag).with_network(network)
     let mqtt_server = GenericImage::new("hivemq/hivemq-ce", "latest")
-        .with_exposed_port(ContainerPort::Tcp(1883))
+        //.with_exposed_port(ContainerPort::Tcp(1883))
         .with_wait_for(WaitFor::message_on_stdout("Started HiveMQ in"))
         //.with_network("bridge")
         .start()
