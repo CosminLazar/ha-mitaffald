@@ -228,7 +228,7 @@ impl HASensor {
             .publish(
                 &self.state_topic,
                 rumqttc::QoS::AtLeastOnce,
-                false,
+                true,
                 serde_json::to_string(&payload).expect("Failed to serialize"),
             )
             .await
