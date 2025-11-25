@@ -8,6 +8,7 @@ use serde_json::json;
 const HA_AVAILABILITY_TOPIC: &str = "garbage_bin/availability";
 const HA_PAYLOAD_AVAILABLE: &str = "online";
 const HA_PAYLOAD_NOT_AVAILABLE: &str = "offline";
+const HA_DEVICE_NAME: &str = "Affaldvarme Device";
 
 impl From<MQTTConfig> for MqttOptions {
     fn from(val: MQTTConfig) -> Self {
@@ -76,7 +77,7 @@ impl HADevice<CreatedState> {
                 "payload_not_available": HA_PAYLOAD_NOT_AVAILABLE,
                 "device": {
                     "identifiers": ["ha_affaldvarme"],
-                    "name": "Affaldvarme integration",
+                    "name": HA_DEVICE_NAME,
                     "sw_version": "1.0",
                     "model": "Standard",
                     "manufacturer": "Your humble rust developer"
@@ -189,7 +190,8 @@ impl HASensor {
                 "payload_not_available": HA_PAYLOAD_NOT_AVAILABLE,
                 "unit_of_measurement": "days",
                 "device": {
-                    "identifiers": ["ha_affaldvarme"]
+                    "identifiers": ["ha_affaldvarme"],
+                    "name": HA_DEVICE_NAME,
                 },
                 "icon": "mdi:recycle"
             }
