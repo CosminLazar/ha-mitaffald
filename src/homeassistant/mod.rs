@@ -178,7 +178,7 @@ impl HASensor {
 
         let payload = json!(
             {
-                "object_id": format!("ha_affaldvarme_{}", self.container_id),
+                "default_entity_id": format!("sensor.ha_affaldvarme_{}", self.container_id),
                 "unique_id": format!("ha_affaldvarme_{}", self.container_id),
                 "name": container.name,
                 "state_topic": self.state_topic,
