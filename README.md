@@ -6,3 +6,5 @@ Fetches the garbage container pick-up schedule from Kredsløb for the specified 
 The address can be specified as one of the following:
  - `TraditionalAddress` - by supplying `street_name`, `street_no`, `postal_code` and `city`
  - `AddressId` - the internal address id that Kredsløb uses - Fetching the Id can be done [here](https://www.kredslob.dk/privat/genbrug-og-affald/toemmekalender) by looking at the network requests in the browser.
+
+See [config file](https://github.com/CosminLazar/ha-mitaffald/blob/main/config/default.toml), environment variables also work.
