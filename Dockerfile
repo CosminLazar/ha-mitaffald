@@ -1,5 +1,6 @@
 FROM rust:bookworm as builder
 WORKDIR /usr/src/myapp
+ENV RUSTFLAGS="-Cprofile-use=/usr/src/myapp/pgo/default.profdata -Cllvm-args=-pgo-warn-missing-function"
 COPY . .
 RUN cargo install --path .
 
