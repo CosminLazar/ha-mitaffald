@@ -15,4 +15,6 @@ RUN set -xe && \
 COPY --from=builder /usr/src/myapp/config ./app/config
 COPY --from=builder /usr/local/cargo/bin/ha-mitaffald ./app
 WORKDIR /app
+HEALTHCHECK --interval=5m --timeout=10s --start-period=30s --retries=3 \
+  CMD find /tmp/healthcheck -mmin -120 | grep -q .
 CMD ["./ha-mitaffald"]
