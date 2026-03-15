@@ -27,6 +27,8 @@ async fn main() {
             ),
         }
 
+        let _ = std::fs::write("/tmp/healthcheck", "");
+
         info!(
             "Next synchronization scheduled at {}",
             (chrono::Local::now() + update_interval).format("%Y-%m-%d %H:%M:%S")
